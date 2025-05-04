@@ -13,9 +13,15 @@ var (
 
 
 func main() {
-	r := gin.Default()
+	router := gin.Default()
 
-	r.GET("/ping", func(c *gin.Context) {
+	router.GET("/", func(context * gin.Context){
+		context.JSON(200, gin.H{
+			"message": "game server api gateway",
+		})
+	})
+
+	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
@@ -23,7 +29,7 @@ func main() {
 
 
 	log.Printf("Starting server on http://localhost%s", API_GATEWAY_PORT)
-	r.Run(API_GATEWAY_PORT)
+	router.Run(API_GATEWAY_PORT)
 
 
 }
