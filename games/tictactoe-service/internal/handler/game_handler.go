@@ -39,6 +39,14 @@ func (h *GameHandler)GetGame(c *gin.Context){
 	c.JSON(http.StatusOK, game)
 }
 
+func (h *GameHandler)GetAllGames(c *gin.Context){
+	games := h.gameService.GetAllGames()
+	c.JSON(http.StatusOK, games)
+}
+
+
+
+
 func (h *GameHandler)MakeMove(c *gin.Context){
 	id := c.Param("id")
 	var move struct{
@@ -55,3 +63,5 @@ func (h *GameHandler)MakeMove(c *gin.Context){
 	}
 	c.JSON(http.StatusOK, game)
 }
+
+

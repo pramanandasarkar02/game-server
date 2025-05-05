@@ -49,6 +49,19 @@ func (g * GameService) GetGame(id string) (*model.Game, bool) {
 	return game, exists
 }
 
+func (g *GameService) GetAllGames() []*model.Game {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	games := make([]*model.Game, 0, len(g.games))	
+	for _, game := range g.games {
+		games = append(games, game)
+	}
+	return games
+}
+
+
+
 func (g *GameService) MakeMove(id string, x int, y int, player string) (*model.Game, error) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()

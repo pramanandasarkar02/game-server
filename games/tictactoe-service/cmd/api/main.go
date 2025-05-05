@@ -22,6 +22,10 @@ func main() {
 	router.POST("/:id/move", gameHandler.MakeMove)
 
 
+	// testing purposes
+	router.GET("/", gameHandler.GetAllGames)
+
+
 	log.Printf("Starting server on http://localhost%s", TICTACTOR_SERVICE_PORT)
 	router.Run(TICTACTOR_SERVICE_PORT)
 }
