@@ -41,3 +41,67 @@ func (g *GameService) CreateGame() *model.Game {
 	g.games[id] = game
 	return game
 }
+func (g * GameService) GetGame(id string) (*model.Game, bool) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	game, exists := g.games[id]
+	return game, exists
+}
+
+func (g *GameService) MakeMove(id string, x int, y int, player string) (*model.Game, error) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	game, exists := g.games[id]	
+	if !exists {
+		return nil, fmt.Errorf("game not found")
+	}
+
+	if game.Status != "IN_PROGRESS" {
+		return nil, fmt.Errorf("game is over")
+	}
+
+	if game.Board[x][y] != "" {
+		return nil, fmt.Errorf("invalid move")
+	}	
+
+	game.Board[x][y] = player
+
+	if game.Board[0][0] == player && game.Board[0][1] == player && game.Board[0][2] == player {
+		game.Status = "WINNER"
+		game.Winner = player
+	} else if game.Board[1][0] == player && game.Board[1][1] == player && game.Board[1][2] == player {
+		game.Status = "WINNER"
+		game.Winner = player
+	} else if game.Board[2][0] == player && game.Board[2][1] == player && game.Board[2][2] == player {
+		game.Status = "WINNER"
+		game.Winner = player
+	} else if game.Board[0][0] == player && game.Board[1][0] == player && game.Board[2][0] == player {
+		game.Status = "WINNER"
+		game.Winner = player
+	} else if game.Board[0][1] == player && game.Board[1][1] == player && game.Board[2][1] == player {
+		game.Status = "WINNER"
+		game.Winner = player	
+	} else if game.Board[0][2] == player && game.Board[1][2] == player && game.Board[2][2] == player {
+		game.Status = "WINNER"
+		game.Winner = player
+	} else if game.Board[0][0] == player && game.Board[1][1] == player && game.Board[2][2] == player {
+		game.Status = "WINNER"
+		game.Winner = player
+	} else if game.Board[0][2] == player && game.Board[1][1] == player && game.Board[2][0] == player {
+		game.Status = "WINNER"
+		game.Winner = player
+	}
+
+	if game.Status == "WINNER" {
+		game.CurrentPlayer = "X"
+	} else {
+		if game.CurrentPlayer == "X" {
+			game.CurrentPlayer = "O"
+		} else {
+			game.CurrentPlayer = "X"
+		}
+	}
+	return game, nil
+}
