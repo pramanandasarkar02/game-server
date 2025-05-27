@@ -1,10 +1,2 @@
-# Game Server
-A Multiplayer games platform.
-
-
-
-
-# start redis service
-```
-docker run --name my-redis -p 6379:6379 -d redis
-``` 
+# Game-Server
+A multiplayer game server for match making and in-game chat service
