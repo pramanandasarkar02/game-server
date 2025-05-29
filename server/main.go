@@ -7,60 +7,58 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-type Player struct{
-	ID string
-	Name string 
-	Level float32
+type Player struct {
+	ID    string  `json:"id"`
+	Name  string  `json:"name"`
+	Level float32 `json:"level"`
 }
 
-type Game struct{
-	ID string
-	Title string
-	RequiredPlayer string
+type Game struct {
+	ID             string `json:"id"`
+	Title          string `json:"title"`
+	RequiredPlayer int `json:"requiredPlayer"`
 }
 
-
-
-
-
-var(
+var (
 	players []Player
-	games []Game
+	games   []Game
 )
 
-
-func playerConnection(c *gin.Context){
+func playerConnection(c *gin.Context) {
 	var newPlayer Player
-
-	if err := c.ShouldBindBodyWithJSON(&newPlayer); err != nil {
+	if err := c.ShouldBindJSON(&newPlayer); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	players = append(players, newPlayer)
 
-	log.Println(newPlayer.Name + "is connected")
+	log.Printf("%s is connected", newPlayer.Name)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Player connected successfully",
-		"player": newPlayer,
+		"player":  newPlayer,
 	})
 }
 
+func getPlayers(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"players": players,
+	})
+}
 
-
-
-
-
-func main(){
+func main() {
 	router := gin.Default()
-	router.GET("/ping", func(c * gin.Context){
-		c.JSON(200, gin.H{
+
+	router.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
 		})
 	})
-	router.POST("/connect", playerConnection)
-	// router.
 
-	router.Run(":4000")
+	router.POST("/connect", playerConnection)
+	router.GET("/players", getPlayers)
+
+	if err := router.Run(":4000"); err != nil {
+		log.Fatalf("Failed to run server: %v", err)
+	}
 }
