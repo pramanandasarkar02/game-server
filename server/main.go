@@ -17,22 +17,14 @@ type Player struct {
 type Game struct {
 	ID             string `json:"id"`
 	Title          string `json:"title"`
-	RequiredPlayer int `json:"requiredPlayer"`
+	RequiredPlayer int    `json:"requiredPlayer"`
 }
-
-
-
-
-
 
 var (
 	players []Player
 	games   []Game
-	queue map[interface{}]interface{}
+	queue   map[string]string
 )
-
-
-
 
 func playerConnection(c *gin.Context) {
 	var newPlayer Player
@@ -56,91 +48,86 @@ func getPlayers(c *gin.Context) {
 	})
 }
 
-func getGames(c *gin.Context){
+func getGames(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"games": games,
 	})
 }
 
-func getQueue(c *gin.Context){
+func getQueue(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"queue": queue,
 	})
 }
 
-func enterQueue(c *gin.Context){
-	var player Player
-	var game Game
-	type Request struct{
-		playerId string
-		gameId string
+func enterQueue(c *gin.Context) {
+	var req struct {
+		PlayerID string `json:"playerId"`
+		GameID   string `json:"gameId"`
 	}
-	var req Request
-	// find the player in server and then add him to the lobby 
-	if err := c.ShouldBindBodyWithJSON(&req); err != nil{
+
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	foundPlayer := false
+	var foundPlayer Player
+	playerFound := false
 
-	for _, p := range players{
-		if p.ID == req.playerId {
-			player = p
-			foundPlayer = true
+	for _, p := range players {
+		if p.ID == req.PlayerID {
+			foundPlayer = p
+			playerFound = true
+			break
 		}
 	}
 
-	if !foundPlayer {
-		c.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("player with ID '%s' not found", req.playerId)})
-		return 
+	if !playerFound {
+		c.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("player with ID '%s' not found", req.PlayerID)})
+		return
 	}
 
+	var foundGame Game
+	gameFound := false
 
-	foundGame := false
-
-	for _, g := range games{
-		if g.ID == req.gameId {
-			game = g
-			foundGame = true
+	for _, g := range games {
+		if g.ID == req.GameID {
+			foundGame = g
+			gameFound = true
+			break
 		}
 	}
 
-	if !foundGame {
-		c.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("game with ID '%s' not found", req.gameId)})
-		return 
+	if !gameFound {
+		c.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("game with ID '%s' not found", req.GameID)})
+		return
 	}
 
-	
+	queue[foundPlayer.ID] = foundGame.ID
 
-	queue[player.ID] = game.ID
-
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("player(%v) join the queue for game %v(%v)", req.playerId, game.Title, req.gameId)})
-
-
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("player(%s) join the queue for game %s(%s)", req.PlayerID, foundGame.Title, req.GameID)})
 }
 
-
-func createGames(){
+func createGames() {
 	games = append(games, Game{
-		ID: "a2",
-		Title: "Tic Tac Toe",
+		ID:             "a2",
+		Title:          "Tic Tac Toe",
 		RequiredPlayer: 2,
 	})
 	games = append(games, Game{
-		ID: "a4",
-		Title: "Ludu",
+		ID:             "a4",
+		Title:          "Ludu",
 		RequiredPlayer: 4,
 	})
 	games = append(games, Game{
-		ID: "a5",
-		Title: "",
+		ID:             "a5",
+		Title:          "minecraft",
 		RequiredPlayer: 5,
 	})
-
 }
 
-
 func main() {
+	queue = make(map[string]string)
 	createGames()
 	router := gin.Default()
 

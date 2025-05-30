@@ -114,13 +114,50 @@ func checkServerLiveness() {
 	}
 }
 
+func joinQueue(){
+	requestPayload := struct{
+		PlayerID string `json:"playerID"`
+		GameID string `json:"gameID"`
+	}{
+		PlayerID: player.ID,
+		GameID: "a2",
+	}
+	queueJSON, err := json.Marshal(requestPayload)
+	if err != nil{
+		log.Printf("Error to marshalling request playload to JSON: %v\n", err)
+		return 
+	}
+
+	response, err := client.Post(baseURL+"/queue/join", "application/json", bytes.NewBuffer(queueJSON))
+
+	if err != nil {
+		log.Printf("Error connecting to server: %v\n", err)
+		return 
+	}
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Printf("Error reading server response: %v\n", err)
+		return 
+	}
+	if response.StatusCode == http.StatusOK{
+		fmt.Println("Server replay: ", string(body))
+	}else{
+		fmt.Println("Something wrong: ", string(body))
+	}
+
+
+}
+
 func printCommand() {
 	for {
 		fmt.Println("\n================ Game Client ===============")
 		fmt.Println("1. Create player")
 		fmt.Println("2. Connect to server")
 		fmt.Println("3. Check server liveness")
-		fmt.Println("4. Exit")
+		fmt.Println("4. Join queue")
+		fmt.Println("0. Exit")
 
 		var query int
 		fmt.Print("Enter Command: ")
@@ -134,10 +171,12 @@ func printCommand() {
 		case 3:
 			checkServerLiveness()
 		case 4:
+			joinQueue()
+		case 0:
 			fmt.Println("Exiting...")
 			return
 		default:
-			fmt.Println("Invalid command. Please choose 1, 2, 3, or 4.")
+			fmt.Println("Invalid command. Please choose 0, 1, 2, 3, or 4.")
 		}
 	}
 }
