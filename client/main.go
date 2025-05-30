@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand/v2"
 	"net/http"
+
 )
 
 type Player struct {
@@ -25,13 +27,27 @@ var (
 	client   = &http.Client{}
 )
 
+
+func automaticStringGenerator(minLen, maxLen int) string{
+	length := minLen + rand.IntN(maxLen - minLen)
+	name := make([]byte, length)
+	for i:= 0; i < length; i++ {
+		name[i] = byte(97 + rand.IntN(25))
+	}
+	return string(name)
+}
+
 func createPlayer() {
-	fmt.Print("Enter player ID: ")
-	fmt.Scanln(&player.ID)
-	fmt.Print("Enter Player Name: ")
-	fmt.Scanln(&player.Name)
-	fmt.Print("Enter player Level: ")
-	fmt.Scanln(&player.Level)
+	// fmt.Print("Enter player ID: ")
+	// fmt.Scanln(&player.ID)
+	// fmt.Print("Enter Player Name: ")
+	// fmt.Scanln(&player.Name)
+	// fmt.Print("Enter player Level: ")
+	// fmt.Scanln(&player.Level)
+	
+	player.ID = automaticStringGenerator(4,8)
+	player.Name = "Alice"
+	player.Level = 0.0
 	fmt.Println("Player created:", player)
 }
 
