@@ -150,37 +150,62 @@ func joinQueue(){
 
 }
 
-func printCommand() {
-	for {
-		fmt.Println("\n================ Game Client ===============")
-		fmt.Println("1. Create player")
-		fmt.Println("2. Connect to server")
-		fmt.Println("3. Check server liveness")
-		fmt.Println("4. Join queue")
-		fmt.Println("0. Exit")
+func getGame(){
 
+}
+
+func joinGame(){
+	
+}
+
+
+
+
+func printCommand() {
+	fmt.Println("\n================ Game Client ===============")
+	fmt.Println("1. Check Server")
+	fmt.Println("2. Connect to server")
+	fmt.Println("3. Join queue")
+	fmt.Println("4. getGame")
+	fmt.Println("5. JoinGame")
+	fmt.Println("6. ")
+	fmt.Println("0. Exit")
+	fmt.Println("==============================================")
+
+}
+
+func excuteCommands(){
+	for {
+		fmt.Println("-----------------------------------------------")
 		var query int
 		fmt.Print("Enter Command: ")
 		fmt.Scanln(&query)
 
 		switch query {
 		case 1:
-			createPlayer()
+			checkServerLiveness()
 		case 2:
 			connectServer()
 		case 3:
-			checkServerLiveness()
-		case 4:
 			joinQueue()
+		case 4:
+			getGame()
+		case 5:
+			joinGame()
+		case 6: 
+			
 		case 0:
 			fmt.Println("Exiting...")
 			return
 		default:
-			fmt.Println("Invalid command. Please choose 0, 1, 2, 3, or 4.")
+			fmt.Println("Invalid command. Please choose 0, 1, 2, 3,4, 5 or 6.")
 		}
+		fmt.Println("-----------------------------------------------")
 	}
 }
 
 func main() {
+	createPlayer();
 	printCommand()
+	excuteCommands()
 }
