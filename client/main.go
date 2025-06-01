@@ -25,6 +25,7 @@ var (
 	player   Player
 	baseURL  = "http://localhost:4000"
 	client   = &http.Client{}
+	matchID string
 )
 
 
@@ -151,10 +152,74 @@ func joinQueue(){
 }
 
 func getGame(){
+	response, err := client.Get(baseURL + fmt.Sprintf("/match/%v", player.ID))
+	if err != nil{
+		fmt.Println("Error: ", err)
+		return 
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Printf("Error reading server response: %v\n", err)
+		return 
+	}
+	
+
+
+	if response.StatusCode == http.StatusOK {
+		var resp struct{
+			MatchID string `json:"matchID"`
+		}
+		err := json.Unmarshal(body, &resp)
+		if err != nil {
+			log.Printf("Error decoding JSON response: %v\n", err)
+			return
+		}
+
+		matchID = resp.MatchID
+		log.Println("Match ID:", matchID)
+		return
+	}
+	log.Printf("Unexpected response status: %d\nResponse: %s", response.StatusCode, string(body))
 
 }
 
 func joinGame(){
+	response, err := client.Get(baseURL + fmt.Sprintf("/running-match/%v/%v", matchID ,player.ID))
+	if err != nil{
+		fmt.Println("Error: ", err)
+		return 
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Printf("Error reading server response: %v\n", err)
+		return 
+	}
+	if response.StatusCode == http.StatusNotFound{
+		log.Println("Response: ", body)
+
+	}
+
+
+	if response.StatusCode == http.StatusOK {
+		var resp struct{
+			MatchID string `json:"matchID"`
+			Players []string `json:"players"`
+		}
+		err := json.Unmarshal(body, &resp)
+		if err != nil {
+			log.Printf("Error decoding JSON response: %v\n", err)
+			return
+		}
+		var players []string
+		matchID = resp.MatchID
+		players = resp.Players
+		log.Println("Game ID:", matchID)
+		log.Println("PlayersID: ", players)
+		return
+	}
+	log.Printf("Unexpected response status: %d\nResponse: %s", response.StatusCode, string(body))
 	
 }
 
@@ -167,7 +232,7 @@ func printCommand() {
 	fmt.Println("2. Connect to server")
 	fmt.Println("3. Join queue")
 	fmt.Println("4. getGame")
-	fmt.Println("5. JoinGame")
+	fmt.Println("5. Join Game")
 	fmt.Println("6. ")
 	fmt.Println("0. Exit")
 	fmt.Println("==============================================")
@@ -176,10 +241,11 @@ func printCommand() {
 
 func excuteCommands(){
 	for {
-		fmt.Println("-----------------------------------------------")
+		fmt.Println("==============================================\nRequest:")
 		var query int
 		fmt.Print("Enter Command: ")
 		fmt.Scanln(&query)
+		fmt.Println("-----------------------------------------------\nResponse")
 
 		switch query {
 		case 1:
@@ -200,7 +266,10 @@ func excuteCommands(){
 		default:
 			fmt.Println("Invalid command. Please choose 0, 1, 2, 3,4, 5 or 6.")
 		}
-		fmt.Println("-----------------------------------------------")
+		fmt.Println("==============================================")
+		fmt.Println()
+
+		
 	}
 }
 

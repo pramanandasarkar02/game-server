@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +25,11 @@ type Game struct {
 var (
 	players []Player
 	games   []Game
-	queue   map[string]string
+	queue   map[string][]string
+	allMatch	map[string][]string
+	runningMatch map[string][]string
+	mutex sync.Mutex
+
 )
 
 func playerConnection(c *gin.Context) {
@@ -71,12 +77,12 @@ func enterQueue(c *gin.Context) {
 		return
 	}
 
-	var foundPlayer Player
+	var player Player
 	playerFound := false
 
 	for _, p := range players {
 		if p.ID == req.PlayerID {
-			foundPlayer = p
+			player = p
 			playerFound = true
 			break
 		}
@@ -87,12 +93,12 @@ func enterQueue(c *gin.Context) {
 		return
 	}
 
-	var foundGame Game
+	var game Game
 	gameFound := false
 
 	for _, g := range games {
 		if g.ID == req.GameID {
-			foundGame = g
+			game = g
 			gameFound = true
 			break
 		}
@@ -103,9 +109,9 @@ func enterQueue(c *gin.Context) {
 		return
 	}
 
-	queue[foundPlayer.ID] = foundGame.ID
+	queue[game.ID] = append(queue[game.ID], player.ID)
 
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("player(%s) join the queue for game %s(%s)", req.PlayerID, foundGame.Title, req.GameID)})
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("player(%s) join the queue for game %s(%s)", req.PlayerID, game.Title, req.GameID)})
 }
 
 func createGames() {
@@ -126,8 +132,94 @@ func createGames() {
 	})
 }
 
+
+func getGameForUser( c* gin.Context){
+	userID := c.Param("userId")
+
+	playerMatchID := ""
+	for matchID, players := range runningMatch {
+		for _, playerID := range  players {
+			if playerID == userID {
+				playerMatchID = matchID
+			}
+		}
+	}
+	if playerMatchID == ""{
+		c.JSON(http.StatusNotFound, gin.H{
+			"messages": "player are not in running match",
+		})
+		return 
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"matchID": playerMatchID,
+	})
+	
+
+}
+
+func getMatch(c *gin.Context){
+	matchID := c.Param("matchId")
+	playerID := c.Param("userId")
+
+	players, exists := runningMatch[matchID]
+	if !exists{
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": fmt.Sprintf("match %s not found", matchID),
+		})
+	}
+
+	userInMatch := false
+	for _, gamePlayerID := range players{
+		if playerID == gamePlayerID {
+			userInMatch = true
+			break
+		}
+	}
+
+	if !userInMatch{
+		c.JSON(http.StatusForbidden, gin.H{
+			"message": fmt.Sprintf("player %s is not in match %s", playerID, matchID),
+		})
+	}
+
+
+
+	//  send the client all necessary resources to the client
+	c.JSON(http.StatusOK, gin.H{
+		"matchID": matchID,
+		"players": players,
+	})
+
+
+}
+
+
+func matchMake(){
+	for {
+		mutex.Lock();
+		for _, game := range games{
+			if queuedPlayers, exists := queue[game.ID]; exists && len(queuedPlayers) >= game.RequiredPlayer {
+				matchID := fmt.Sprintf("match-%d", time.Now().UnixNano())
+				newMatch := queuedPlayers[:game.RequiredPlayer]
+				queue[game.ID] = queuedPlayers[game.RequiredPlayer:]
+
+				runningMatch[matchID] = newMatch
+				allMatch[matchID] = newMatch
+				log.Printf("Created match %s for game %s with players: %v", matchID, game.ID, newMatch)
+			}
+		}
+		mutex.Unlock()
+		time.Sleep(1 * time.Second)
+
+	}
+}
+
+
+
 func main() {
-	queue = make(map[string]string)
+	queue = make(map[string][]string)
+	runningMatch = make(map[string][]string)
+	allMatch = make(map[string][]string)
 	createGames()
 	router := gin.Default()
 
@@ -142,6 +234,11 @@ func main() {
 	router.GET("/games", getGames)
 	router.GET("/queue", getQueue)
 	router.POST("/queue/join", enterQueue)
+	router.GET("/match/:userId", getGameForUser)
+	router.GET("/running-match/:matchId/:userId", getMatch)
+
+
+	go matchMake();
 
 	if err := router.Run(":4000"); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
