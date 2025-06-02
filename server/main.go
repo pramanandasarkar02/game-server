@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 type Player struct {
@@ -22,6 +23,13 @@ type Game struct {
 	RequiredPlayer int    `json:"requiredPlayer"`
 }
 
+type ChatMessage struct {
+	MatchID string `json:"matchId"`
+	PlayerID string `json:"playerId"`
+	Content string `json:"content"`
+	Timestamp string `json:"timestamp"`
+}
+
 var (
 	players []Player
 	games   []Game
@@ -30,7 +38,21 @@ var (
 	runningMatch map[string][]string
 	mutex sync.Mutex
 
+	connections map[string]map[string]*websocket.Conn
+	connMutex sync.Mutex
+	upgrader = websocket.Upgrader{
+		ReadBufferSize: 1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool{
+			return true
+		},
+	}
+
+
 )
+
+
+
 
 func playerConnection(c *gin.Context) {
 	var newPlayer Player
@@ -214,7 +236,62 @@ func matchMake(){
 	}
 }
 
+func handleChat(c *gin.Context){
+	matchID := c.Param("matchId")
+	playerID := c.Param("playerId")
 
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil{
+		log.Printf("websocket upgrader error: %v\n", err)
+		return 
+	}
+
+	connMutex.Lock()
+	if _, exists := connections[matchID]; !exists{
+		connections[matchID] = make(map[string]*websocket.Conn)
+	}
+	connections[matchID][playerID] = conn
+	connMutex.Unlock()
+
+	log.Printf("Player %s connected to chat for match %s", playerID, matchID)
+
+	for{
+		var msg ChatMessage
+		err := conn.ReadJSON(&msg)
+		if err != nil{
+			log.Printf("websocket read error for player %s: %v", playerID, err)
+			break;
+		}
+		if msg.MatchID != matchID || msg.PlayerID != playerID {
+			continue 
+
+		}
+
+		msg.Timestamp = time.Now().Format(time.RFC3339)
+		connMutex.Lock()
+		for pID, pConn := range connections[matchID] {
+			if pID != playerID {
+				if err := pConn.WriteJSON(msg); err != nil {
+					log.Printf("Error sending message to player %s: %v", pID, err)
+				}
+			}
+		}
+		connMutex.Unlock()
+	}
+	connMutex.Lock()
+	delete(connections[matchID],playerID)
+	if len(connections[matchID]) == 0 {
+		delete(connections, matchID)
+	}
+	connMutex.Unlock()
+	conn.Close()
+	log.Printf("Player %s disconnected from chat for match %s.", playerID, matchID)
+
+}
+
+func init(){
+	connections = make(map[string]map[string]*websocket.Conn)
+}
 
 func main() {
 	queue = make(map[string][]string)
@@ -236,6 +313,7 @@ func main() {
 	router.POST("/queue/join", enterQueue)
 	router.GET("/match/:userId", getGameForUser)
 	router.GET("/running-match/:matchId/:userId", getMatch)
+	router.GET("/chat/:matchId/:userId", handleChat)
 
 
 	go matchMake();
