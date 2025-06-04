@@ -236,58 +236,192 @@ func matchMake(){
 	}
 }
 
-func handleChat(c *gin.Context){
-	matchID := c.Param("matchId")
-	playerID := c.Param("playerId")
+// func handleChat(c *gin.Context){
+// 	matchID := c.Param("matchId")
+// 	playerID := c.Param("playerId")
 
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil{
-		log.Printf("websocket upgrader error: %v\n", err)
-		return 
-	}
+// 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+// 	if err != nil{
+// 		log.Printf("websocket upgrader error: %v\n", err)
+// 		return 
+// 	}
 
-	connMutex.Lock()
-	if _, exists := connections[matchID]; !exists{
-		connections[matchID] = make(map[string]*websocket.Conn)
-	}
-	connections[matchID][playerID] = conn
-	connMutex.Unlock()
+// 	connMutex.Lock()
+// 	if _, exists := connections[matchID]; !exists{
+// 		connections[matchID] = make(map[string]*websocket.Conn)
+// 	}
+// 	connections[matchID][playerID] = conn
+// 	connMutex.Unlock()
 
-	log.Printf("Player %s connected to chat for match %s", playerID, matchID)
+// 	log.Printf("Player %s connected to chat for match %s", playerID, matchID)
 
-	for{
-		var msg ChatMessage
-		err := conn.ReadJSON(&msg)
-		if err != nil{
-			log.Printf("websocket read error for player %s: %v", playerID, err)
-			break;
-		}
-		if msg.MatchID != matchID || msg.PlayerID != playerID {
-			continue 
+// 	go func(){
+// 		ticker := time.NewTicker(30 * time.Second)
+// 		defer ticker.Stop()
+// 		for range ticker.C{
+// 			connMutex.Lock()
+// 			if _, exists := connections[matchID][playerID]; !exists {
+// 				connMutex.Unlock()
+// 				return 
+// 			}
+// 			connMutex.Unlock()
+// 			err := conn.WriteMessage(websocket.PongMessage, nil)
+// 			if err != nil{
+// 				log.Printf("Error sending pong to player %s in match %s: %v", playerID, matchID)
+// 				return 
+// 			}
+// 		}
+// 	}()
 
-		}
+// 	for{
+// 		var msg ChatMessage
+// 		err := conn.ReadJSON(&msg)
+// 		if err != nil{
+// 			log.Printf("websocket read error for player %s: %v", playerID, err)
+// 			break;
+// 		}
+// 		if msg.MatchID != matchID || msg.PlayerID != playerID {
+// 			log.Printf("Invalid message from player %s in match %s: %+v", playerID, matchID)
+// 			continue 
 
-		msg.Timestamp = time.Now().Format(time.RFC3339)
-		connMutex.Lock()
-		for pID, pConn := range connections[matchID] {
-			if pID != playerID {
-				if err := pConn.WriteJSON(msg); err != nil {
-					log.Printf("Error sending message to player %s: %v", pID, err)
-				}
-			}
-		}
-		connMutex.Unlock()
-	}
-	connMutex.Lock()
-	delete(connections[matchID],playerID)
-	if len(connections[matchID]) == 0 {
-		delete(connections, matchID)
-	}
-	connMutex.Unlock()
-	conn.Close()
-	log.Printf("Player %s disconnected from chat for match %s.", playerID, matchID)
+// 		}
 
+// 		msg.Timestamp = time.Now().Format(time.RFC3339)
+// 		connMutex.Lock()
+// 		for pID, pConn := range connections[matchID] {
+// 			if pID != playerID {
+// 				if err := pConn.WriteJSON(msg); err != nil {
+// 					log.Printf("Error sending message to player %s: %v", pID, err)
+// 				}
+// 			}
+// 		}
+// 		connMutex.Unlock()
+// 	}
+// 	connMutex.Lock()
+// 	delete(connections[matchID],playerID)
+// 	if len(connections[matchID]) == 0 {
+// 		delete(connections, matchID)
+// 	}
+// 	connMutex.Unlock()
+// 	conn.Close()
+// 	log.Printf("Player %s disconnected from chat for match %s.", playerID, matchID)
+
+// }
+
+func handleChat(c *gin.Context) {
+    matchID := c.Param("matchId")
+    playerID := c.Param("playerId")
+
+    // Validate player is in the match
+    mutex.Lock()
+    players, exists := runningMatch[matchID]
+    mutex.Unlock()
+    if !exists {
+        c.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("match %s not found", matchID)})
+        return
+    }
+    userInMatch := false
+    for _, pID := range players {
+        if pID == playerID {
+            userInMatch = true
+            break
+        }
+    }
+    if !userInMatch {
+        c.JSON(http.StatusForbidden, gin.H{"message": fmt.Sprintf("player %s is not in match %s", playerID, matchID)})
+        return
+    }
+
+    conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+    if err != nil {
+        log.Printf("WebSocket upgrade error for player %s in match %s: %v", playerID, matchID, err)
+        return
+    }
+
+    conn.SetPingHandler(func(appData string) error {
+        return conn.WriteMessage(websocket.PongMessage, nil)
+    })
+    conn.SetPongHandler(func(appData string) error {
+        log.Printf("Received pong from player %s in match %s", playerID, matchID)
+        return nil
+    })
+
+    connMutex.Lock()
+    if _, exists := connections[matchID]; !exists {
+        connections[matchID] = make(map[string]*websocket.Conn)
+    }
+    connections[matchID][playerID] = conn
+    connMutex.Unlock()
+
+    log.Printf("Player %s connected to chat for match %s", playerID, matchID)
+
+    go func() {
+        ticker := time.NewTicker(30 * time.Second)
+        defer ticker.Stop()
+        for range ticker.C {
+            connMutex.Lock()
+            if _, exists := connections[matchID][playerID]; !exists {
+                connMutex.Unlock()
+                return
+            }
+            connMutex.Unlock()
+            err := conn.WriteMessage(websocket.PongMessage, nil)
+            if err != nil {
+                log.Printf("Error sending pong to player %s in match %s: %v", playerID, matchID, err)
+                return
+            }
+        }
+    }()
+
+    for {
+        var msg ChatMessage
+        err := conn.ReadJSON(&msg)
+        if err != nil {
+            if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+                log.Printf("Player %s closed connection normally in match %s", playerID, matchID)
+            } else {
+                log.Printf("WebSocket read error for player %s in match %s: %v", playerID, matchID, err)
+            }
+            break
+        }
+
+        // Log the raw message for debugging
+        log.Printf("Received message from player %s in match %s: %+v", playerID, matchID, msg)
+
+        // Validate message content
+        if msg.Content == "" {
+            log.Printf("Empty message content from player %s in match %s", playerID, matchID)
+            continue
+        }
+
+        // Override MatchID and PlayerID to ensure correctness
+        msg.MatchID = matchID
+        msg.PlayerID = playerID
+        msg.Timestamp = time.Now().Format(time.RFC3339)
+
+        connMutex.Lock()
+        for pID, pConn := range connections[matchID] {
+            if pID != playerID {
+                if err := pConn.WriteJSON(msg); err != nil {
+                    log.Printf("Error sending message to player %s in match %s: %v", pID, matchID, err)
+                }
+            }
+        }
+        connMutex.Unlock()
+    }
+
+    connMutex.Lock()
+    delete(connections[matchID], playerID)
+    if len(connections[matchID]) == 0 {
+        delete(connections, matchID)
+    }
+    connMutex.Unlock()
+    conn.Close()
+    log.Printf("Player %s disconnected from chat for match %s", playerID, matchID)
 }
+
+
+
 
 func init(){
 	connections = make(map[string]map[string]*websocket.Conn)

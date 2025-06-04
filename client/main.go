@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -8,13 +9,23 @@ import (
 	"log"
 	"math/rand/v2"
 	"net/http"
-
+	"os"
+	"strings"
+	"time"
+	"github.com/gorilla/websocket"
 )
 
 type Player struct {
 	ID    string  `json:"id"`
 	Name  string  `json:"name"`
 	Level float32 `json:"level"`
+}
+
+type ChatMessage struct{
+	MatchID string `json:"matchId"`
+	PlayerID string `json:"playerId"`
+	Content string `json:"content"`
+	Timestamp string `json:"timestamp"`
 }
 
 func (player Player) String() string {
@@ -26,6 +37,7 @@ var (
 	baseURL  = "http://localhost:4000"
 	client   = &http.Client{}
 	matchID string
+	wsDialer = websocket.Dialer{}
 )
 
 
@@ -223,6 +235,157 @@ func joinGame(){
 	
 }
 
+func startChat() {
+    if matchID == "" || player.ID == "" {
+        fmt.Println("Cannot start chat: missing match ID or player ID")
+        return
+    }
+
+    wsURL := fmt.Sprintf("ws://localhost:4000/chat/%s/%s", matchID, player.ID)
+    conn, _, err := wsDialer.Dial(wsURL, nil)
+    if err != nil {
+        fmt.Printf("Failed to connect to chat: %v\n", err)
+        return
+    }
+    defer func() {
+        conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Client exiting"))
+        conn.Close()
+        fmt.Println("Chat connection closed")
+    }()
+
+    fmt.Printf("Connected to chat for match %s as player %s\n", matchID, player.ID)
+    fmt.Println("Type your messages (type 'exit' to quit chat):")
+
+    go func() {
+        for {
+            var msg ChatMessage
+            err := conn.ReadJSON(&msg)
+            if err != nil {
+                fmt.Printf("Chat disconnected: %v\n", err)
+                return
+            }
+            if msg.PlayerID != player.ID {
+                fmt.Printf("[%s] %s: %s\n", msg.Timestamp, msg.PlayerID, msg.Content)
+            }
+        }
+    }()
+
+    go func() {
+        ticker := time.NewTicker(30 * time.Second)
+        defer ticker.Stop()
+        for range ticker.C {
+            err := conn.WriteMessage(websocket.PingMessage, nil)
+            if err != nil {
+                fmt.Printf("Error sending ping: %v\n", err)
+                return
+            }
+        }
+    }()
+
+    scanner := bufio.NewScanner(os.Stdin)
+    for scanner.Scan() {
+        input := strings.TrimSpace(scanner.Text())
+        if input == "exit" {
+            fmt.Println("Exiting chat...")
+            return
+        }
+        if input != "" {
+            msg := ChatMessage{
+                MatchID:   matchID,
+                PlayerID:  player.ID,
+                Content:   input,
+                Timestamp: time.Now().Format(time.RFC3339), // Optional, server overrides this
+            }
+            log.Printf("Sending message: %+v", msg)
+            err := conn.WriteJSON(msg)
+            if err != nil {
+                fmt.Printf("Error sending message: %v\n", err)
+                return
+            }
+        }
+    }
+    if err := scanner.Err(); err != nil {
+        fmt.Printf("Error reading input: %v\n", err)
+    }
+}
+
+
+
+// func startChat(){
+// 	if matchID == ""{
+// 		fmt.Println("join a game first")
+// 		return 
+// 	}
+
+// 	wsURL := fmt.Sprintf("ws://localhost:4000/chat/%s/%s", matchID, player.ID)
+// 	conn, _, err := wsDialer.Dial(wsURL, nil)
+// 	if err != nil{
+// 		log.Println("Error connecting to websocket: %v\n", err)
+// 		return 
+// 	}
+// 	defer func(){
+// 		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Client exiting"))
+// 		conn.Close()
+// 		fmt.Println("Chat Connection Closed")
+// 	}()
+
+// 	fmt.Println("Connected to chat for match ", matchID)
+// 	fmt.Println("Type your messages (type 'exit' to quit chat):")
+
+// 	go func(){
+// 		for {
+// 			var msg ChatMessage
+// 			err := conn.ReadJSON(&msg)
+// 			if err != nil {
+// 				log.Println("Websocket read err: %v\n", err)
+// 				return 
+// 			}
+// 			if msg.PlayerID != player.ID {
+// 				fmt.Printf("[%s] %s: %s", msg.Timestamp, msg.PlayerID, msg.Content)
+// 			}
+// 		}
+// 	}()
+
+// 	go func(){
+// 		ticker := time.NewTicker(30 * time.Second)
+// 		defer ticker.Stop()
+// 		for range ticker.C{
+// 			err := conn.WriteMessage(websocket.PingMessage, nil)
+// 			if err != nil{
+// 				fmt.Printf("Error sending ping: %v\n", err)
+// 				return 
+// 			}
+// 		}
+// 	}()
+
+// 	scanner := bufio.NewScanner(os.Stdin)
+
+// 	for scanner.Scan(){
+		
+// 		input := strings.TrimSpace(scanner.Text())
+// 		if input == "exit" {
+// 			fmt.Println("EXiting Chat...")
+// 			return 
+// 		}
+
+// 		if input != ""{
+// 			msg := ChatMessage{
+// 				MatchID: matchID,
+// 				PlayerID: player.ID,
+// 				Content: input,
+// 			}
+// 			err := conn.WriteJSON(msg)
+// 			if err != nil{
+// 				log.Println("Error in sending message: %v\n", err)
+// 				return 
+// 			}
+// 		}
+// 	}
+// 	if err := scanner.Err(); err != nil {
+// 		fmt.Printf("Error reading input: %v\n", err)
+// 	}
+// }
+
 
 
 
@@ -233,7 +396,7 @@ func printCommand() {
 	fmt.Println("3. Join queue")
 	fmt.Println("4. getGame")
 	fmt.Println("5. Join Game")
-	fmt.Println("6. ")
+	fmt.Println("6. start Chat")
 	fmt.Println("0. Exit")
 	fmt.Println("==============================================")
 
@@ -259,7 +422,7 @@ func excuteCommands(){
 		case 5:
 			joinGame()
 		case 6: 
-			
+			startChat()
 		case 0:
 			fmt.Println("Exiting...")
 			return
