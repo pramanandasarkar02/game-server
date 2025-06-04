@@ -24,35 +24,30 @@ type Game struct {
 }
 
 type ChatMessage struct {
-	MatchID string `json:"matchId"`
-	PlayerID string `json:"playerId"`
-	Content string `json:"content"`
+	MatchID   string `json:"matchId"`
+	PlayerID  string `json:"playerId"`
+	Content   string `json:"content"`
 	Timestamp string `json:"timestamp"`
 }
 
 var (
-	players []Player
-	games   []Game
-	queue   map[string][]string
-	allMatch	map[string][]string
+	players      []Player
+	games        []Game
+	queue        map[string][]string
+	allMatch     map[string][]string
 	runningMatch map[string][]string
-	mutex sync.Mutex
+	mutex        sync.RWMutex
 
 	connections map[string]map[string]*websocket.Conn
-	connMutex sync.Mutex
-	upgrader = websocket.Upgrader{
-		ReadBufferSize: 1024,
+	connMutex   sync.RWMutex
+	upgrader    = websocket.Upgrader{
+		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool{
+		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
-
-
 )
-
-
-
 
 func playerConnection(c *gin.Context) {
 	var newPlayer Player
@@ -60,7 +55,10 @@ func playerConnection(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	
+	mutex.Lock()
 	players = append(players, newPlayer)
+	mutex.Unlock()
 
 	log.Printf("%s is connected", newPlayer.Name)
 
@@ -71,8 +69,13 @@ func playerConnection(c *gin.Context) {
 }
 
 func getPlayers(c *gin.Context) {
+	mutex.RLock()
+	playersCopy := make([]Player, len(players))
+	copy(playersCopy, players)
+	mutex.RUnlock()
+	
 	c.JSON(http.StatusOK, gin.H{
-		"players": players,
+		"players": playersCopy,
 	})
 }
 
@@ -83,15 +86,23 @@ func getGames(c *gin.Context) {
 }
 
 func getQueue(c *gin.Context) {
+	mutex.RLock()
+	queueCopy := make(map[string][]string)
+	for k, v := range queue {
+		queueCopy[k] = make([]string, len(v))
+		copy(queueCopy[k], v)
+	}
+	mutex.RUnlock()
+	
 	c.JSON(http.StatusOK, gin.H{
-		"queue": queue,
+		"queue": queueCopy,
 	})
 }
 
 func enterQueue(c *gin.Context) {
 	var req struct {
-		PlayerID string `json:"playerId"`
-		GameID   string `json:"gameId"`
+		PlayerID string `json:"playerID"` // Fixed field name to match client
+		GameID   string `json:"gameID"`   // Fixed field name to match client
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -99,6 +110,7 @@ func enterQueue(c *gin.Context) {
 		return
 	}
 
+	mutex.RLock()
 	var player Player
 	playerFound := false
 
@@ -111,6 +123,7 @@ func enterQueue(c *gin.Context) {
 	}
 
 	if !playerFound {
+		mutex.RUnlock()
 		c.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("player with ID '%s' not found", req.PlayerID)})
 		return
 	}
@@ -125,13 +138,16 @@ func enterQueue(c *gin.Context) {
 			break
 		}
 	}
+	mutex.RUnlock()
 
 	if !gameFound {
 		c.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("game with ID '%s' not found", req.GameID)})
 		return
 	}
 
+	mutex.Lock()
 	queue[game.ID] = append(queue[game.ID], player.ID)
+	mutex.Unlock()
 
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("player(%s) join the queue for game %s(%s)", req.PlayerID, game.Title, req.GameID)})
 }
@@ -154,75 +170,82 @@ func createGames() {
 	})
 }
 
-
-func getGameForUser( c* gin.Context){
+func getGameForUser(c *gin.Context) {
 	userID := c.Param("userId")
 
+	mutex.RLock()
 	playerMatchID := ""
 	for matchID, players := range runningMatch {
-		for _, playerID := range  players {
+		for _, playerID := range players {
 			if playerID == userID {
 				playerMatchID = matchID
+				break
 			}
 		}
+		if playerMatchID != "" {
+			break
+		}
 	}
-	if playerMatchID == ""{
+	mutex.RUnlock()
+
+	if playerMatchID == "" {
 		c.JSON(http.StatusNotFound, gin.H{
-			"messages": "player are not in running match",
+			"message": "player is not in running match",
 		})
-		return 
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"matchID": playerMatchID,
 	})
-	
-
 }
 
-func getMatch(c *gin.Context){
+func getMatch(c *gin.Context) {
 	matchID := c.Param("matchId")
 	playerID := c.Param("userId")
 
+	mutex.RLock()
 	players, exists := runningMatch[matchID]
-	if !exists{
+	if !exists {
+		mutex.RUnlock()
 		c.JSON(http.StatusNotFound, gin.H{
 			"message": fmt.Sprintf("match %s not found", matchID),
 		})
+		return
 	}
 
 	userInMatch := false
-	for _, gamePlayerID := range players{
+	for _, gamePlayerID := range players {
 		if playerID == gamePlayerID {
 			userInMatch = true
 			break
 		}
 	}
+	
+	playersCopy := make([]string, len(players))
+	copy(playersCopy, players)
+	mutex.RUnlock()
 
-	if !userInMatch{
+	if !userInMatch {
 		c.JSON(http.StatusForbidden, gin.H{
 			"message": fmt.Sprintf("player %s is not in match %s", playerID, matchID),
 		})
+		return
 	}
 
-
-
-	//  send the client all necessary resources to the client
 	c.JSON(http.StatusOK, gin.H{
 		"matchID": matchID,
-		"players": players,
+		"players": playersCopy,
 	})
-
-
 }
 
-
-func matchMake(){
+func matchMake() {
 	for {
-		mutex.Lock();
-		for _, game := range games{
+		mutex.Lock()
+		for _, game := range games {
 			if queuedPlayers, exists := queue[game.ID]; exists && len(queuedPlayers) >= game.RequiredPlayer {
 				matchID := fmt.Sprintf("match-%d", time.Now().UnixNano())
-				newMatch := queuedPlayers[:game.RequiredPlayer]
+				newMatch := make([]string, game.RequiredPlayer)
+				copy(newMatch, queuedPlayers[:game.RequiredPlayer])
 				queue[game.ID] = queuedPlayers[game.RequiredPlayer:]
 
 				runningMatch[matchID] = newMatch
@@ -232,198 +255,146 @@ func matchMake(){
 		}
 		mutex.Unlock()
 		time.Sleep(1 * time.Second)
-
 	}
 }
 
-// func handleChat(c *gin.Context){
-// 	matchID := c.Param("matchId")
-// 	playerID := c.Param("playerId")
-
-// 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-// 	if err != nil{
-// 		log.Printf("websocket upgrader error: %v\n", err)
-// 		return 
-// 	}
-
-// 	connMutex.Lock()
-// 	if _, exists := connections[matchID]; !exists{
-// 		connections[matchID] = make(map[string]*websocket.Conn)
-// 	}
-// 	connections[matchID][playerID] = conn
-// 	connMutex.Unlock()
-
-// 	log.Printf("Player %s connected to chat for match %s", playerID, matchID)
-
-// 	go func(){
-// 		ticker := time.NewTicker(30 * time.Second)
-// 		defer ticker.Stop()
-// 		for range ticker.C{
-// 			connMutex.Lock()
-// 			if _, exists := connections[matchID][playerID]; !exists {
-// 				connMutex.Unlock()
-// 				return 
-// 			}
-// 			connMutex.Unlock()
-// 			err := conn.WriteMessage(websocket.PongMessage, nil)
-// 			if err != nil{
-// 				log.Printf("Error sending pong to player %s in match %s: %v", playerID, matchID)
-// 				return 
-// 			}
-// 		}
-// 	}()
-
-// 	for{
-// 		var msg ChatMessage
-// 		err := conn.ReadJSON(&msg)
-// 		if err != nil{
-// 			log.Printf("websocket read error for player %s: %v", playerID, err)
-// 			break;
-// 		}
-// 		if msg.MatchID != matchID || msg.PlayerID != playerID {
-// 			log.Printf("Invalid message from player %s in match %s: %+v", playerID, matchID)
-// 			continue 
-
-// 		}
-
-// 		msg.Timestamp = time.Now().Format(time.RFC3339)
-// 		connMutex.Lock()
-// 		for pID, pConn := range connections[matchID] {
-// 			if pID != playerID {
-// 				if err := pConn.WriteJSON(msg); err != nil {
-// 					log.Printf("Error sending message to player %s: %v", pID, err)
-// 				}
-// 			}
-// 		}
-// 		connMutex.Unlock()
-// 	}
-// 	connMutex.Lock()
-// 	delete(connections[matchID],playerID)
-// 	if len(connections[matchID]) == 0 {
-// 		delete(connections, matchID)
-// 	}
-// 	connMutex.Unlock()
-// 	conn.Close()
-// 	log.Printf("Player %s disconnected from chat for match %s.", playerID, matchID)
-
-// }
-
 func handleChat(c *gin.Context) {
-    matchID := c.Param("matchId")
-    playerID := c.Param("playerId")
+	matchID := c.Param("matchId")
+	playerID := c.Param("playerId") // Fixed parameter name
 
-    // Validate player is in the match
-    mutex.Lock()
-    players, exists := runningMatch[matchID]
-    mutex.Unlock()
-    if !exists {
-        c.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("match %s not found", matchID)})
-        return
-    }
-    userInMatch := false
-    for _, pID := range players {
-        if pID == playerID {
-            userInMatch = true
-            break
-        }
-    }
-    if !userInMatch {
-        c.JSON(http.StatusForbidden, gin.H{"message": fmt.Sprintf("player %s is not in match %s", playerID, matchID)})
-        return
-    }
+	// Validate player is in the match
+	mutex.RLock()
+	players, exists := runningMatch[matchID]
+	mutex.RUnlock()
+	
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("match %s not found", matchID)})
+		return
+	}
+	
+	userInMatch := false
+	for _, pID := range players {
+		if pID == playerID {
+			userInMatch = true
+			break
+		}
+	}
+	if !userInMatch {
+		c.JSON(http.StatusForbidden, gin.H{"message": fmt.Sprintf("player %s is not in match %s", playerID, matchID)})
+		return
+	}
 
-    conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-    if err != nil {
-        log.Printf("WebSocket upgrade error for player %s in match %s: %v", playerID, matchID, err)
-        return
-    }
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		log.Printf("WebSocket upgrade error for player %s in match %s: %v", playerID, matchID, err)
+		return
+	}
 
-    conn.SetPingHandler(func(appData string) error {
-        return conn.WriteMessage(websocket.PongMessage, nil)
-    })
-    conn.SetPongHandler(func(appData string) error {
-        log.Printf("Received pong from player %s in match %s", playerID, matchID)
-        return nil
-    })
+	// Set up ping/pong handlers
+	conn.SetPingHandler(func(appData string) error {
+		log.Printf("Received ping from player %s in match %s", playerID, matchID)
+		return conn.WriteMessage(websocket.PongMessage, []byte(appData))
+	})
 
-    connMutex.Lock()
-    if _, exists := connections[matchID]; !exists {
-        connections[matchID] = make(map[string]*websocket.Conn)
-    }
-    connections[matchID][playerID] = conn
-    connMutex.Unlock()
+	conn.SetPongHandler(func(appData string) error {
+		log.Printf("Received pong from player %s in match %s", playerID, matchID)
+		return nil
+	})
 
-    log.Printf("Player %s connected to chat for match %s", playerID, matchID)
+	// Set read deadline for connection health
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
 
-    go func() {
-        ticker := time.NewTicker(30 * time.Second)
-        defer ticker.Stop()
-        for range ticker.C {
-            connMutex.Lock()
-            if _, exists := connections[matchID][playerID]; !exists {
-                connMutex.Unlock()
-                return
-            }
-            connMutex.Unlock()
-            err := conn.WriteMessage(websocket.PongMessage, nil)
-            if err != nil {
-                log.Printf("Error sending pong to player %s in match %s: %v", playerID, matchID, err)
-                return
-            }
-        }
-    }()
+	connMutex.Lock()
+	if _, exists := connections[matchID]; !exists {
+		connections[matchID] = make(map[string]*websocket.Conn)
+	}
+	connections[matchID][playerID] = conn
+	connMutex.Unlock()
 
-    for {
-        var msg ChatMessage
-        err := conn.ReadJSON(&msg)
-        if err != nil {
-            if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-                log.Printf("Player %s closed connection normally in match %s", playerID, matchID)
-            } else {
-                log.Printf("WebSocket read error for player %s in match %s: %v", playerID, matchID, err)
-            }
-            break
-        }
+	log.Printf("Player %s connected to chat for match %s", playerID, matchID)
 
-        // Log the raw message for debugging
-        log.Printf("Received message from player %s in match %s: %+v", playerID, matchID, msg)
+	// Goroutine to send periodic pings
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		
+		for {
+			select {
+			case <-ticker.C:
+				connMutex.RLock()
+				if _, exists := connections[matchID][playerID]; !exists {
+					connMutex.RUnlock()
+					return
+				}
+				connMutex.RUnlock()
+				
+				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+					log.Printf("Error sending ping to player %s in match %s: %v", playerID, matchID, err)
+					return
+				}
+			}
+		}
+	}()
 
-        // Validate message content
-        if msg.Content == "" {
-            log.Printf("Empty message content from player %s in match %s", playerID, matchID)
-            continue
-        }
+	// Main message handling loop
+	for {
+		var msg ChatMessage
+		err := conn.ReadJSON(&msg)
+		if err != nil {
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+				log.Printf("Player %s closed connection normally in match %s", playerID, matchID)
+			} else {
+				log.Printf("WebSocket read error for player %s in match %s: %v", playerID, matchID, err)
+			}
+			break
+		}
 
-        // Override MatchID and PlayerID to ensure correctness
-        msg.MatchID = matchID
-        msg.PlayerID = playerID
-        msg.Timestamp = time.Now().Format(time.RFC3339)
+		log.Printf("Received message from player %s in match %s: %+v", playerID, matchID, msg)
 
-        connMutex.Lock()
-        for pID, pConn := range connections[matchID] {
-            if pID != playerID {
-                if err := pConn.WriteJSON(msg); err != nil {
-                    log.Printf("Error sending message to player %s in match %s: %v", pID, matchID, err)
-                }
-            }
-        }
-        connMutex.Unlock()
-    }
+		// Validate message content
+		if msg.Content == "" {
+			log.Printf("Empty message content from player %s in match %s", playerID, matchID)
+			continue
+		}
 
-    connMutex.Lock()
-    delete(connections[matchID], playerID)
-    if len(connections[matchID]) == 0 {
-        delete(connections, matchID)
-    }
-    connMutex.Unlock()
-    conn.Close()
-    log.Printf("Player %s disconnected from chat for match %s", playerID, matchID)
+		// Override fields to ensure correctness
+		msg.MatchID = matchID
+		msg.PlayerID = playerID
+		msg.Timestamp = time.Now().Format(time.RFC3339)
+
+		// Broadcast message to all other players in the match
+		connMutex.RLock()
+		matchConnections := connections[matchID]
+		for pID, pConn := range matchConnections {
+			if pID != playerID {
+				if err := pConn.WriteJSON(msg); err != nil {
+					log.Printf("Error sending message to player %s in match %s: %v", pID, matchID, err)
+					// Don't break here, continue sending to other players
+				}
+			}
+		}
+		connMutex.RUnlock()
+	}
+
+	// Cleanup connection
+	connMutex.Lock()
+	if matchConnections, exists := connections[matchID]; exists {
+		delete(matchConnections, playerID)
+		if len(matchConnections) == 0 {
+			delete(connections, matchID)
+		}
+	}
+	connMutex.Unlock()
+	
+	conn.Close()
+	log.Printf("Player %s disconnected from chat for match %s", playerID, matchID)
 }
 
-
-
-
-func init(){
+func init() {
 	connections = make(map[string]map[string]*websocket.Conn)
 }
 
@@ -432,6 +403,7 @@ func main() {
 	runningMatch = make(map[string][]string)
 	allMatch = make(map[string][]string)
 	createGames()
+	
 	router := gin.Default()
 
 	router.GET("/ping", func(c *gin.Context) {
@@ -447,10 +419,9 @@ func main() {
 	router.POST("/queue/join", enterQueue)
 	router.GET("/match/:userId", getGameForUser)
 	router.GET("/running-match/:matchId/:userId", getMatch)
-	router.GET("/chat/:matchId/:userId", handleChat)
+	router.GET("/chat/:matchId/:playerId", handleChat) // Fixed parameter name
 
-
-	go matchMake();
+	go matchMake()
 
 	if err := router.Run(":4000"); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
