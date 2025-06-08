@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/pramanandasarkar02/game-server/config"
 	"github.com/pramanandasarkar02/game-server/internal/api/handlers"
@@ -10,6 +11,7 @@ import (
 
 func NewRouter(playerStore store.PlayerStore, gameStore store.GameStore, queueStore store.QueueStore, matchStore store.MatchStore, cfg *config.Config) *gin.Engine {
 	router := gin.Default()
+	router.Use(cors.Default())
 	wsManager := websocket.NewWebSocketManager(cfg, gameStore, matchStore)
 
 	router.GET("/ping", handlers.PingHandler())

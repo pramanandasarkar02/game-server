@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/yourusername/game-server/internal/game"
-	"github.com/yourusername/game-server/internal/models"
-	"github.com/yourusername/game-server/internal/store"
-	"github.com/yourusername/game-server/pkg/logger"
+	"github.com/pramanandasarkar02/game-server/internal/models"
+	"github.com/pramanandasarkar02/game-server/internal/store"
+	"github.com/pramanandasarkar02/game-server/pkg/logger"
 )
 
 func StartMatchmaker(gameStore store.GameStore, queueStore store.QueueStore, matchStore store.MatchStore) {
