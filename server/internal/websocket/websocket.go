@@ -18,8 +18,8 @@ type WebSocketManager struct {
 	connections map[string]map[string]*websocket.Conn
 	mutex       sync.RWMutex
 	cfg         *config.Config
-	gameStore   store.GameStore
-	matchStore  store.MatchStore
+	gameStore   *store.GameStore
+	matchStore  *store.MatchStore
 }
 
 type WebSocketMessage struct {
@@ -42,7 +42,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func NewWebSocketManager(cfg *config.Config, gameStore store.GameStore, matchStore store.MatchStore) *WebSocketManager {
+func NewWebSocketManager(cfg *config.Config, gameStore *store.GameStore, matchStore *store.MatchStore) *WebSocketManager {
 	return &WebSocketManager{
 		connections: make(map[string]map[string]*websocket.Conn),
 		cfg:         cfg,

@@ -9,7 +9,7 @@ import (
 	"github.com/pramanandasarkar02/game-server/pkg/logger"
 )
 
-func StartMatchmaker(gameStore store.GameStore, queueStore store.QueueStore, matchStore store.MatchStore) {
+func StartMatchmaker(gameStore *store.GameStore, queueStore *store.QueueStore, matchStore *store.MatchStore) {
 	for {
 		games := gameStore.GetAll()
 		for _, g := range games {

@@ -9,7 +9,7 @@ import (
 	"github.com/pramanandasarkar02/game-server/internal/websocket"
 )
 
-func NewRouter(playerStore store.PlayerStore, gameStore store.GameStore, queueStore store.QueueStore, matchStore store.MatchStore, cfg *config.Config) *gin.Engine {
+func NewRouter(playerStore *store.PlayerStore, gameStore *store.GameStore, queueStore *store.QueueStore, matchStore *store.MatchStore, cfg *config.Config) *gin.Engine {
 	router := gin.Default()
 	router.Use(cors.Default())
 	wsManager := websocket.NewWebSocketManager(cfg, gameStore, matchStore)

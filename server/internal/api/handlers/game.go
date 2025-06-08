@@ -5,7 +5,7 @@ import (
 	"github.com/pramanandasarkar02/game-server/internal/store"
 )
 
-func GetGamesHandler(store store.GameStore) gin.HandlerFunc {
+func GetGamesHandler(store *store.GameStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		games := store.GetAll()
 		gamesCopy := make([]interface{}, len(games))

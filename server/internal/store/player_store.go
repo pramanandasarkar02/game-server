@@ -1,6 +1,7 @@
 package store
 
 import (
+	"log"
 	"sync"
 
 	"github.com/pramanandasarkar02/game-server/internal/models"
@@ -24,6 +25,7 @@ func (s *PlayerStore) AddPlayer(player models.Player) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.players = append(s.players, player)
+	log.Printf("Player added: %+v, Total players: %d", player, len(s.players))
 	return nil
 }
 
@@ -35,6 +37,7 @@ func (s *PlayerStore) GetPlayer(id string) (models.Player, bool) {
 			return p, true
 		}
 	}
+	log.Printf("Player with ID %s not found", id)
 	return models.Player{}, false
 }
 
@@ -43,5 +46,6 @@ func (s *PlayerStore) GetAll() []models.Player {
 	defer s.mutex.RUnlock()
 	playersCopy := make([]models.Player, len(s.players))
 	copy(playersCopy, s.players)
-	return playersCopy
+	log.Printf("Returning %d players: %+v", len(playersCopy), playersCopy)
+	return playersCopy // Return the copy to prevent external modification
 }

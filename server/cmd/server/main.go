@@ -29,10 +29,10 @@ func main() {
 	gameStore.AddGame(game.TicTacToeGame())
 
 	// Start matchmaker
-	go matchmaking.StartMatchmaker(*gameStore, *queueStore, *matchStore)
+	go matchmaking.StartMatchmaker(gameStore, queueStore, matchStore)
 
 	// Start API server
-	router := api.NewRouter(*playerStore, *gameStore, *queueStore, *matchStore, cfg)
+	router := api.NewRouter(playerStore, gameStore, queueStore, matchStore, cfg)
 	if err := router.Run(":" + cfg.Port); err != nil {
 		logger.Fatal("Failed to run server: %v", err)
 	}

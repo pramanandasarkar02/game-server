@@ -8,14 +8,14 @@ import (
 	"github.com/pramanandasarkar02/game-server/pkg/logger"
 )
 
-func GetQueueHandler(store store.QueueStore) gin.HandlerFunc {
+func GetQueueHandler(store *store.QueueStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		queues := store.GetAllQueues()
 		c.JSON(200, gin.H{"queue": queues})
 	}
 }
 
-func JoinQueueHandler(playerStore store.PlayerStore, gameStore store.GameStore, queueStore store.QueueStore) gin.HandlerFunc {
+func JoinQueueHandler(playerStore *store.PlayerStore, gameStore *store.GameStore, queueStore *store.QueueStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req struct {
 			PlayerID string `json:"playerID"`

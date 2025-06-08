@@ -7,7 +7,7 @@ import (
 	"github.com/pramanandasarkar02/game-server/internal/store"
 )
 
-func GetMatchForUserHandler(store store.MatchStore) gin.HandlerFunc {
+func GetMatchForUserHandler(store *store.MatchStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.Param("userId")
 		match, exists := store.GetMatchForPlayer(userID)
@@ -19,7 +19,7 @@ func GetMatchForUserHandler(store store.MatchStore) gin.HandlerFunc {
 	}
 }
 
-func GetMatchHandler(store store.MatchStore) gin.HandlerFunc {
+func GetMatchHandler(store *store.MatchStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		matchID := c.Param("matchId")
 		playerID := c.Param("userId")

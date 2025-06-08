@@ -7,7 +7,7 @@ import (
 	"github.com/pramanandasarkar02/game-server/pkg/logger"
 )
 
-func PlayerHandler(store store.PlayerStore) gin.HandlerFunc {
+func PlayerHandler(store *store.PlayerStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var player models.Player
 		if err := c.ShouldBindJSON(&player); err != nil {
@@ -25,7 +25,7 @@ func PlayerHandler(store store.PlayerStore) gin.HandlerFunc {
 	}
 }
 
-func GetPlayersHandler(store store.PlayerStore) gin.HandlerFunc {
+func GetPlayersHandler(store *store.PlayerStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		players := store.GetAll()
 		c.JSON(200, gin.H{"players": players})
