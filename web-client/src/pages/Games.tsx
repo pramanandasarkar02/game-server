@@ -202,7 +202,12 @@ const Games: React.FC = () => {
                 key={index}
                 onClick={() => handleMove(index)}
                 className="h-16 bg-gray-200 text-2xl font-bold flex items-center justify-center hover:bg-gray-300 disabled:bg-gray-400"
-                disabled={!!cell || gameState.winner || gameState.isDraw || gameState.turn !== player.id}
+                disabled={
+                  Boolean(cell) || 
+                  Boolean(gameState.winner) || 
+                  Boolean(gameState.isDraw) || 
+                  (gameState.turn !== player.id)
+                }
               >
                 {cell}
               </button>

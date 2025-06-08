@@ -1,4 +1,4 @@
-module game-server
+module github.com/pramanandasarkar02/game-server
 
 go 1.24.3
 
