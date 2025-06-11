@@ -205,10 +205,14 @@ func (m *WebSocketManager) broadcast(matchID, excludePlayerID string, msg WebSoc
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	for pID, conn := range m.connections[matchID] {
-		if pID != excludePlayerID {
-			if err := conn.WriteJSON(msg); err != nil {
+		// if pID != excludePlayerID {
+		// 	if err := conn.WriteJSON(msg); err != nil {
+		// 		logger.Error("Error broadcasting to player %s in match %s: %v", pID, matchID, err)
+		// 	}
+		// }
+
+		if err := conn.WriteJSON(msg); err != nil {
 				logger.Error("Error broadcasting to player %s in match %s: %v", pID, matchID, err)
 			}
-		}
 	}
 }

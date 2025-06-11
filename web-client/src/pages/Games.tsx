@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { PlayerContext } from '../contexts/PlayerContext';
-import type { Player, ChatMessage, TicTacToeState, WebSocketMessage } from '../types/player';
+import type { ChatMessage, TicTacToeState, WebSocketMessage } from '../types/player';
 
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const wsURL = import.meta.env.VITE_WS_URL || 'ws://localhost:4000';
