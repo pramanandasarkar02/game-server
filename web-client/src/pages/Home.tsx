@@ -59,6 +59,7 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+        {/*
         <div>
           <h2 className="text-2xl font-bold text-center text-gray-900">Create Account</h2>
           <div className="mt-8 space-y-6">
@@ -98,6 +99,7 @@ const Home: React.FC = () => {
             </button>
           </div>
         </div>
+         */}
 
         <div>
           <h2 className="text-2xl font-bold text-center text-gray-900">Login</h2>

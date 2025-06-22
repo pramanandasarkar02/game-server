@@ -216,32 +216,35 @@ const Games: React.FC = () => {
         )}
         <p className="text-center text-lg">{status}</p>
 
-        <div className="mt-8">
-          <h3 className="text-lg font-medium">Chat</h3>
-          <div className="h-64 overflow-y-auto border border-gray-300 p-2">
-            {messages.map((msg, index) => (
-              <p key={index} className={msg.playerId === player.id ? 'text-right text-blue-600' : 'text-left'}>
-                [{new Date(msg.timestamp).toLocaleString()}] {msg.playerId}: {msg.content}
-              </p>
-            ))}
+        {/* Chat section: only render when game is running (gameState exists and no winner or draw) */}
+        {gameState && !gameState.winner && !gameState.isDraw && (
+          <div className="mt-8">
+            <h3 className="text-lg font-medium">Chat</h3>
+            <div className="h-64 overflow-y-auto border border-gray-300 p-2">
+              {messages.map((msg, index) => (
+                <p key={index} className={msg.playerId === player.id ? 'text-right text-blue-600' : 'text-left'}>
+                  [{new Date(msg.timestamp).toLocaleString()}] {msg.playerId}: {msg.content}
+                </p>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded"
+                placeholder="Type a message..."
+              />
+              <button
+                onClick={sendMessage}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Send
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2 mt-2">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded"
-              placeholder="Type a message..."
-            />
-            <button
-              onClick={sendMessage}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Send
-            </button>
-          </div>
-        </div>
+        )}
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
       </div>
