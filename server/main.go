@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -16,6 +17,8 @@ type Player struct {
 	Name  string  `json:"name"`
 	Level float32 `json:"level"`
 }
+
+
 
 type Game struct {
 	ID             string `json:"id"`
@@ -399,6 +402,14 @@ func init() {
 }
 
 func main() {
+	file, err := os.OpenFile("logs/server.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("Failed to open log file: %v", err)
+	}
+	defer file.Close()
+	log.SetOutput(file)
+
+
 	queue = make(map[string][]string)
 	runningMatch = make(map[string][]string)
 	allMatch = make(map[string][]string)

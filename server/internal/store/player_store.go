@@ -6,11 +6,13 @@ import (
 
 	"github.com/pramanandasarkar02/game-server/internal/models"
 )
-
+// players data save in memory
 type PlayerStore struct {
 	players []models.Player
 	mutex   sync.RWMutex
 }
+
+
 
 func NewPlayerStore() *PlayerStore {
 	return &PlayerStore{
