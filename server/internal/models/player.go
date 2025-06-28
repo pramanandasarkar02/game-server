@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"time"
+	"encoding/json"
 )
 type PlayerState string
 
@@ -32,7 +33,7 @@ type Player struct {
 	Name         string            `json:"name"`
 	Password     string            `json:"-"`
 	Email        string            `json:"email"`
-	Level        float32           `json:"level"`
+	Level        float64           `json:"level"`
 	CreatedAt    time.Time         `json:"createdAt"`
 	UpdatedAt    time.Time         `json:"updatedAt"`
 	MatchHistory map[string]bool   `json:"matchHistory"` // matchID -> won/lose
@@ -54,7 +55,7 @@ func NewPlayer(name, password, email string) *Player {
 	}
 }
 
-func (p *Player) UpdateLevel(newLevel float32) {
+func (p *Player) UpdateLevel(newLevel float64) {
 	p.Level = newLevel
 	p.UpdatedAt = time.Now()
 }
@@ -76,7 +77,7 @@ func (p *Player) SetState(state PlayerState) error {
 	return nil
 }
 
-func (p *Player) GetWinRate() float32 {
+func (p *Player) GetWinRate() float64 {
 	if len(p.MatchHistory) == 0 {
 		return 0.0
 	}
@@ -86,14 +87,14 @@ func (p *Player) GetWinRate() float32 {
 			wins++
 		}
 	}
-	return float32(wins) / float32(len(p.MatchHistory))
+	return float64(wins) / float64(len(p.MatchHistory))
 }
 
 func (p *Player) GetMatchCount() int {
 	return len(p.MatchHistory)
 }
 func (p *Player) UpdatePassword(newPassword string) {
-	p.password = newPassword
+	p.Password = newPassword
 	p.UpdatedAt = time.Now()
 }
 
@@ -128,6 +129,7 @@ func (p *Player) Validate() error {
 // MarshalJSON custom JSON marshaling
 func (p *Player) MarshalJSON() ([]byte, error) {
 	type Alias Player
+	
 	return json.Marshal(&struct {
 		*Alias
 		CreatedAt string `json:"createdAt"`

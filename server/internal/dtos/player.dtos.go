@@ -1,10 +1,15 @@
 package dtos
 
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
 
-type CreatedPlayerDto struct{
-	Name string `json:"name" validate:"required, min=3, max=50"`
-	Password string `json:"password" validate:"required, min=6"`
-	Email string `json:"email" validate:"required, email"`
+type CreatePlayerDto struct {
+	Name     string `json:"name" validate:"required,min=3,max=50"`
+	Password string `json:"password" validate:"required,min=6"`
+	Email    string `json:"email" validate:"required,email"`
 }
 
 func (dto *CreatePlayerDto) Validate() error {
@@ -30,20 +35,20 @@ type PlayerProfileInfoDto struct {
 	Level        float32  `json:"level"`
 	MatchHistory []string `json:"matchHistory"`
 	PlayerStatus string   `json:"playerStatus"`
-	WinRate      float64  `json:"winRate"`
+	WinRate      float32  `json:"winRate"`
 	MatchCount   int      `json:"matchCount"`
 	CreatedAt    string   `json:"createdAt"`
 	UpdatedAt    string   `json:"updatedAt"`
 }
 
 type PlayerMatchInfoDto struct {
-	ID           string             `json:"id"`
-	Name         string             `json:"name"`
-	Level        float32            `json:"level"`
-	State        string             `json:"state"`
-	MatchHistory map[string]bool    `json:"matchHistory"`
-	WinRate      float64            `json:"winRate"`
-	MatchCount   int                `json:"matchCount"`
+	ID           string          `json:"id"`
+	Name         string          `json:"name"`
+	Level        float32         `json:"level"`
+	State        string          `json:"state"`
+	MatchHistory map[string]bool `json:"matchHistory"`
+	WinRate      float32         `json:"winRate"`
+	MatchCount   int             `json:"matchCount"`
 }
 
 type PlayerAuthUpdateDto struct {
@@ -65,7 +70,6 @@ func (dto *PlayerAuthUpdateDto) Validate() error {
 	return nil
 }
 
-
 type PlayerMatchUpdateDto struct {
 	MatchID string `json:"matchId" validate:"required"`
 	Won     bool   `json:"won"`
@@ -78,11 +82,9 @@ func (dto *PlayerMatchUpdateDto) Validate() error {
 	return nil
 }
 
-
 type PlayerLevelUpdateDto struct {
 	Level float32 `json:"level" validate:"required,min=1"`
 }
-
 
 func (dto *PlayerLevelUpdateDto) Validate() error {
 	if dto.Level < 1 {
@@ -96,13 +98,13 @@ type PlayerStateUpdateDto struct {
 }
 
 func (dto *PlayerStateUpdateDto) Validate() error {
-	validStates := []string{"Ingame", "InQuery", "Offline", "Online"}
+	validStates := []string{"InGame", "InQuery", "Offline", "Online"}
 	for _, state := range validStates {
 		if dto.State == state {
 			return nil
 		}
 	}
-	return fmt.Errorf("invalid state: %s. Valid states are: %v", dto.State, validStates)
+	return fmt.Errorf("invalid state: %s, valid states are: %v", dto.State, validStates)
 }
 
 func isValidEmail(email string) bool {
