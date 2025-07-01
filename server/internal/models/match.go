@@ -33,7 +33,7 @@ type Match struct {
 // NewMatch creates a new match with the given gameID and players
 func NewMatch(gameID string, players []string) *Match {
 	return &Match{
-		ID:         uuid.New().String(),
+		ID:         "match-" + uuid.New().String(),
 		GameID:     gameID,
 		Players:    players,
 		CreatedAt:  time.Now(),
