@@ -1,30 +1,35 @@
-
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlayerContext } from '../contexts/PlayerContext';
-import type { Player } from '../types/player';
-import { v4 as uuidv4 } from 'uuid';
+import { PlayerContext, TokenContext } from '../contexts/PlayerContext';
+
 
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
+interface RequestPayloadType {
+  username: string;
+  password: string;
+}
+
 const Home: React.FC = () => {
   const { player, setPlayer } = useContext(PlayerContext);
+  const { setToken } = useContext(TokenContext);
   const [error, setError] = useState<string>('');
   const [response, setResponse] = useState<string>('');
-  const [formData, setFormData] = useState({ name: player?.name || '', password: '' });
+  const [formData, setFormData] = useState({ username: player?.name || '', password: '' });
+  const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
 
-  const createUserFormat = async (playerData: { name: string }) => {
-    if (!playerData.name) {
+  const connect = async (username: string, password: string) => {
+    if (!username) {
       setError('Please enter a username');
       return;
     }
+    if (!password) {
+      setError('Please enter a password');
+      return;
+    }
 
-    const requestPayload: Player = {
-      name: playerData.name,
-      id: player?.id || uuidv4(),
-      level: player?.level || 0,
-    };
+    const requestPayload: RequestPayloadType = { username, password };
 
     try {
       const res = await fetch(`${baseURL}/connect`, {
@@ -34,34 +39,76 @@ const Home: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setPlayer(requestPayload);
-        setResponse(`Successfully connected to server: ${data.message}`);
+        setPlayer(data.player);
+        setToken(data.token);
+        setResponse(`Successfully logged in: ${data.message}`);
         setError('');
         navigate('/games');
       } else {
-        setError(`Failed to connect to server: ${data.message}`);
+        setError(`Failed to log in: ${data.message}`);
       }
     } catch (err) {
-      setError(`Error connecting to server: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(`Error logging in: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
-  const handleCreateUser = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    createUserFormat(formData);
+  const register = async (username: string, password: string) => {
+    if (!username) {
+      setError('Please enter a username');
+      return;
+    }
+    if (!password) {
+      setError('Please enter a password');
+      return;
+    }
+
+    const requestPayload: RequestPayloadType = { username, password };
+
+    try {
+      const res = await fetch(`${baseURL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestPayload),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPlayer(data.player);
+        setToken(data.token);
+        setResponse(`Successfully created account: ${data.message}`);
+        setError('');
+        navigate('/games');
+      } else {
+        setError(`Failed to create account: ${data.message}`);
+      }
+    } catch (err) {
+      setError(`Error creating account: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
   };
 
   const handleLogin = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    createUserFormat(formData);
+    connect(formData.username, formData.password);
+  };
+
+  const handleCreateAccount = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    register(formData.username, formData.password);
+  };
+
+  const toggleForm = () => {
+    setIsLogin(!isLogin);
+    setError('');
+    setResponse('');
+    setFormData({ username: player?.name || '', password: '' });
   };
 
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
-        {/*
         <div>
-          <h2 className="text-2xl font-bold text-center text-gray-900">Create Account</h2>
+          <h2 className="text-2xl font-bold text-center text-gray-900">
+            {isLogin ? 'Login' : 'Create Account'}
+          </h2>
           <div className="mt-8 space-y-6">
             <div className="rounded-md shadow-sm space-y-4">
               <div>
@@ -71,8 +118,8 @@ const Home: React.FC = () => {
                 <input
                   id="username"
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   placeholder="Enter username"
                 />
@@ -92,38 +139,16 @@ const Home: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={handleCreateUser}
+              onClick={isLogin ? handleLogin : handleCreateAccount}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Create Account
+              {isLogin ? 'Login' : 'Create Account'}
             </button>
-          </div>
-        </div>
-         */}
-
-        <div>
-          <h2 className="text-2xl font-bold text-center text-gray-900">Login</h2>
-          <div className="mt-8 space-y-6">
-            <div className="rounded-md shadow-sm space-y-4">
-              <div>
-                <label htmlFor="login-username" className="block text-sm font-medium text-gray-700">
-                  Username
-                </label>
-                <input
-                  id="login-username"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Enter username"
-                />
-              </div>
-            </div>
             <button
-              onClick={handleLogin}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              onClick={toggleForm}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Login
+              {isLogin ? 'Need an account? Create one' : 'Already have an account? Login'}
             </button>
           </div>
         </div>

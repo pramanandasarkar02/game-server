@@ -4,8 +4,10 @@ import (
 	"log"
 	"sync"
 
+	"github.com/pramanandasarkar02/game-server/internal/dtos"
 	"github.com/pramanandasarkar02/game-server/internal/models"
 )
+
 // players data save in memory
 type PlayerStore struct {
 	players []models.Player
@@ -18,6 +20,23 @@ func NewPlayerStore() *PlayerStore {
 	return &PlayerStore{
 		players: make([]models.Player, 0),
 	}
+}
+
+
+func (s *PlayerStore) CreatePlayer(playerDto dtos.CreatePlayerDto) {
+	if err := playerDto.Validate(); err != nil {
+		return 
+	}
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	// save in memory and postgress db
+
+
+}
+
+func (s* PlayerStore) GetPlayerProfileInfo(playerProfileInfoDto dtos.PlayerProfileInfoDto) {
+	
 }
 
 func (s *PlayerStore) AddPlayer(player models.Player) error {
