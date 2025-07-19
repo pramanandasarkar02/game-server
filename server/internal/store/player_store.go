@@ -124,6 +124,24 @@ func (s *PlayerStore) GetAll() []models.Player {
 // }
 
 
+
+func (s *PlayerStore)CreateNewPlayer(player dtos.PlayerRegisterStore)  error {
+	// Validate player data
+	if err := player.Validate(); err != nil {
+		return err
+	}
+
+	// Save player data to database
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.players = append(s.players, models.Player{
+		ID:       player.Username,
+		Name:     player.Username,
+		Password: player.Password,
+	})
+	return nil
+}
+
 func (s *PlayerStore)GetPlayerByUsername(username string) (dtos.PlayerConnectionResponse, error) {
 	for _, player := range s.players {
 		if player.Name == username {

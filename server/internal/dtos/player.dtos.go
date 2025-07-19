@@ -136,3 +136,41 @@ type PlayerConnectionResponse struct {
 	Password string `json:"password"`
 }
 
+
+type PlayerRegisterRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+func (dto *PlayerRegisterRequest) Validate() error {
+	if strings.TrimSpace(dto.Username) == "" {
+		return fmt.Errorf("username is required")
+	}
+	if strings.TrimSpace(dto.Password) == "" {
+		return fmt.Errorf("password is required")
+	}
+	return nil
+}
+
+type PlayerRegisterResponse struct {
+	Token string `json:"token"`
+	UserId    string `json:"userId"`
+	Username  string `json:"username"`
+}
+
+
+type PlayerRegisterStore struct {
+	Id       string `json:"id"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (dto *PlayerRegisterStore) Validate() error {
+	if strings.TrimSpace(dto.Username) == "" {
+		return fmt.Errorf("username is required")
+	}
+	if strings.TrimSpace(dto.Password) == "" {
+		return fmt.Errorf("password is required")
+	}
+	return nil
+}
+

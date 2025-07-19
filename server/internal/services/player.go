@@ -51,13 +51,60 @@ func (s *PlayerService) ConnectPlayer(req dtos.PlayerConnectionRequest) (dtos.Pl
 		UserId:    player.UserId,
 		Username:  player.Username,
 	}, nil
+}
 
+func (s *PlayerService) RegisterPlayer(req dtos.PlayerRegisterRequest) (dtos.PlayerRegisterResponse, error) {
+	if err := req.Validate(); err != nil {
+		return dtos.PlayerRegisterResponse{}, err
+	}
 
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return dtos.PlayerRegisterResponse{}, fmt.Errorf("failed to hash password: %v", err)
+	}
 
-	// save in storage
+	playerStore := dtos.PlayerRegisterStore{
+		Username: req.Username,
+		Password: string(hashedPassword),
+	}
+	if err := s.store.CreateNewPlayer(playerStore); err != nil {
+		return dtos.PlayerRegisterResponse{}, fmt.Errorf("failed to create player: %v", err)
+	}
+	
+	player, err := s.store.GetPlayerByUsername(req.Username)
+	
+	if err != nil {
+		return dtos.PlayerRegisterResponse{}, err
+	}
+
+	token, err := s.generateToken(player.UserId, player.Username)
+	if err != nil {
+		return dtos.PlayerRegisterResponse{}, err
+	}
+	return dtos.PlayerRegisterResponse{
+		Token:     token,
+		UserId:    playerStore.Username,
+		Username:  playerStore.Username,
+	}, nil
+
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// -------------------------------------------------------------------------- //
 
 func (s *PlayerService) generateToken(userId, username string) (string, error) {
 	// Generate JWT token
