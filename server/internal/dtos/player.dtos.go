@@ -111,3 +111,28 @@ func isValidEmail(email string) bool {
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return emailRegex.MatchString(email)
 }
+
+
+
+type PlayerConnectionRequest struct {
+	Username     string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (dto *PlayerConnectionRequest) Validate() error {
+	if strings.TrimSpace(dto.Username) == "" {
+		return fmt.Errorf("username is required")
+	}
+	if strings.TrimSpace(dto.Password) == "" {
+		return fmt.Errorf("password is required")
+	}
+	return nil
+}
+
+type PlayerConnectionResponse struct {
+	Token string `json:"token"`
+	UserId    string `json:"userId"`
+	Username  string `json:"username"`
+	Password string `json:"password"`
+}
+

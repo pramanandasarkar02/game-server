@@ -5,6 +5,7 @@ import (
 	"github.com/pramanandasarkar02/game-server/internal/api"
 	"github.com/pramanandasarkar02/game-server/internal/game"
 	"github.com/pramanandasarkar02/game-server/internal/matchmaking"
+	"github.com/pramanandasarkar02/game-server/internal/services"
 	"github.com/pramanandasarkar02/game-server/internal/store"
 	"github.com/pramanandasarkar02/game-server/pkg/logger"
 )
@@ -25,6 +26,11 @@ func main() {
 	queueStore := store.NewQueueStore()
 	matchStore := store.NewMatchStore()
 
+
+
+	// initialize services
+	playerService := services.NewPlayerService(playerStore)
+
 	// Initialize games
 	gameStore.AddGame(game.TicTacToeGame())
 
@@ -32,7 +38,7 @@ func main() {
 	go matchmaking.StartMatchmaker(gameStore, queueStore, matchStore)
 
 	// Start API server
-	router := api.NewRouter(playerStore, gameStore, queueStore, matchStore, cfg)
+	router := api.NewRouter(playerService, playerStore, gameStore, queueStore, matchStore, cfg)
 	if err := router.Run(":" + cfg.Port); err != nil {
 		logger.Fatal("Failed to run server: %v", err)
 	}
