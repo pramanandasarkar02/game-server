@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlayerContext, TokenContext } from '../contexts/PlayerContext';
+import { AuthContext } from '../contexts/AuthContext';
 
 
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
@@ -11,13 +11,15 @@ interface RequestPayloadType {
 }
 
 const Home: React.FC = () => {
-  const { player, setPlayer } = useContext(PlayerContext);
-  const { setToken } = useContext(TokenContext);
+  const { player, setPlayer } = useContext(AuthContext);
+
   const [error, setError] = useState<string>('');
   const [response, setResponse] = useState<string>('');
   const [formData, setFormData] = useState({ username: player?.name || '', password: '' });
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
+
+  
 
   const connect = async (username: string, password: string) => {
     if (!username) {
@@ -38,9 +40,10 @@ const Home: React.FC = () => {
         body: JSON.stringify(requestPayload),
       });
       const data = await res.json();
+      console.log(data);
       if (res.ok) {
         setPlayer(data.player);
-        setToken(data.token);
+        
         setResponse(`Successfully logged in: ${data.message}`);
         setError('');
         navigate('/games');
@@ -71,9 +74,10 @@ const Home: React.FC = () => {
         body: JSON.stringify(requestPayload),
       });
       const data = await res.json();
+      console.log(data);
       if (res.ok) {
         setPlayer(data.player);
-        setToken(data.token);
+        // setToken(data.token);
         setResponse(`Successfully created account: ${data.message}`);
         setError('');
         navigate('/games');

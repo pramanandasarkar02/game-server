@@ -2,22 +2,22 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"sync"
-
-	"github.com/pramanandasarkar02/game-server/internal/dtos"
 	"github.com/pramanandasarkar02/game-server/internal/models"
 )
 
-// players data save in memory
+// in memory player store
 type PlayerStore struct {
-	players []models.Player
-	mutex   sync.RWMutex
-	activeSessions map[string]string
+	players []models.Player 		  // for storing players
+	activeSessions map[string]string  // for storing active sessions
+	playerMutex   sync.RWMutex
+	// sessionMutex  sync.RWMutex
 }
 
 
-
+// create new instance of player store
 func NewPlayerStore() *PlayerStore {
 	return &PlayerStore{
 		players: make([]models.Player, 0),
@@ -26,140 +26,76 @@ func NewPlayerStore() *PlayerStore {
 }
 
 
-func (s *PlayerStore) CreatePlayer(playerDto dtos.CreatePlayerDto) {
-	if err := playerDto.Validate(); err != nil {
-		return 
-	}
-
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	// save in memory and postgress db
-
-
-}
-
-func (s* PlayerStore) GetPlayerProfileInfo(playerProfileInfoDto dtos.PlayerProfileInfoDto) {
-	
-}
-
-func (s *PlayerStore) AddPlayer(player models.Player) error {
-	if err := player.Validate(); err != nil {
-		return err
-	}
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.players = append(s.players, player)
-	log.Printf("Player added: %+v, Total players: %d", player, len(s.players))
+// add new player to store
+func (ps *PlayerStore) AddPlayer (player models.Player) error {
+	ps.playerMutex.Lock()
+	defer ps.playerMutex.Unlock()
+	ps.players = append(ps.players, player)
+	log.Printf("player %s added to store\n", player.Name)
+	fmt.Printf("player %s added to store\n", player.Name)
 	return nil
 }
 
-func (s *PlayerStore) GetPlayer(id string) (models.Player, bool) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	for _, p := range s.players {
-		if p.ID == id {
-			return p, true
-		}
-	}
-	log.Printf("Player with ID %s not found", id)
-	return models.Player{}, false
-}
 
-func (s *PlayerStore) GetAll() []models.Player {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	playersCopy := make([]models.Player, len(s.players))
-	copy(playersCopy, s.players)
-	log.Printf("Returning %d players: %+v", len(playersCopy), playersCopy)
-	return playersCopy // Return the copy to prevent external modification
-}
-
-// func (s *PlayerStore) ConnectPlayer(playerConnectionRequest dtos.PlayerConnectionRequest) (dtos.PlayerConnectionResponse, error) {
-//     s.mutex.Lock()
-//     defer s.mutex.Unlock()
-
-//     // Validate credentials against PostgreSQL
-//     var storedPlayer models.Player // Assume models.Player exists
-//     err := s.db.Where("username = ?", playerConnectionRequest.Username).First(&storedPlayer).Error
-//     if err != nil {
-//         if errors.Is(err, gorm.ErrRecordNotFound) {
-//             return dtos.PlayerConnectionResponse{}, fmt.Errorf("invalid credentials")
-//         }
-//         return dtos.PlayerConnectionResponse{}, fmt.Errorf("database error: %v", err)
-//     }
-
-//     // Verify password (assuming password is hashed in DB)
-//     if err := bcrypt.CompareHashAndPassword([]byte(storedPlayer.Password), []byte(playerConnectionRequest.Password)); err != nil {
-//         return dtos.PlayerConnectionResponse{}, fmt.Errorf("invalid credentials")
-//     }
-
-//     // Generate JWT token
-//     token, err := generateJWT(storedPlayer.ID, playerConnectionRequest.Username)
-//     if err != nil {
-//         return dtos.PlayerConnectionResponse{}, fmt.Errorf("failed to generate token: %v", err)
-//     }
-
-//     // Store session in Redis
-//     err = s.redis.Set(context.Background(), fmt.Sprintf("session:%s", storedPlayer.ID), token, 24*time.Hour).Err()
-//     if err != nil {
-//         return dtos.PlayerConnectionResponse{}, fmt.Errorf("failed to store session: %v", err)
-//     }
-
-//     return dtos.PlayerConnectionResponse{
-//         Token:    token,
-//         UserId:   storedPlayer.ID,
-//         Username: playerConnectionRequest.Username,
-//     }, nil
-// }
-
-// // Helper function to generate JWT
-// func generateJWT(userID, username string) (string, error) {
-//     token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-//         "user_id":  userID,
-//         "username": username,
-//         "exp":      time.Now().Add(24 * time.Hour).Unix(),
-//     })
-
-//     return token.SignedString([]byte("your-secret-key")) // Replace with actual secret
-// }
-
-
-
-func (s *PlayerStore)CreateNewPlayer(player dtos.PlayerRegisterStore)  error {
-	// Validate player data
-	if err := player.Validate(); err != nil {
-		return err
-	}
-
-	// Save player data to database
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.players = append(s.players, models.Player{
-		ID:       player.Username,
-		Name:     player.Username,
-		Password: player.Password,
-	})
-	return nil
-}
-
-func (s *PlayerStore)GetPlayerByUsername(username string) (dtos.PlayerConnectionResponse, error) {
-	for _, player := range s.players {
+// get player id by username
+func (ps *PlayerStore) GetPlayerIdByUsername (username string) (string, error) {
+	ps.playerMutex.RLock()
+	defer ps.playerMutex.RUnlock()
+	for _, player := range ps.players {
 		if player.Name == username {
-			return dtos.PlayerConnectionResponse{
-				Token:    "token",
-				UserId:   player.ID,
-				Username: player.Name,
-			}, nil
+			return player.ID, nil
+		}	
+	}
+	return "", errors.New("player not found")
+}
+
+// get player by player id
+func (ps *PlayerStore) GetPlayerById (playerId string) (*models.Player, error) {
+	ps.playerMutex.RLock()
+	defer ps.playerMutex.RUnlock()
+	for _, player := range ps.players {
+		if player.ID == playerId {
+			return &player, nil
 		}
 	}
-	return dtos.PlayerConnectionResponse{}, errors.New("player not found")
+	return nil, errors.New("player not found")
 }
 
 
-func (s *PlayerStore) SaveSession(userId, token string) error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.activeSessions[userId] = token
-	return nil
+
+// update player 
+func (ps *PlayerStore) UpdatePlayer (player models.Player) error {
+	ps.playerMutex.Lock()
+	defer ps.playerMutex.Unlock()
+	for i, p := range ps.players {
+		if p.ID == player.ID {
+			ps.players[i] = player
+			log.Printf("player %s updated in store\n", player.Name)
+			fmt.Printf("player %s updated in store\n", player.Name)
+			return nil
+		}
+	}
+	return fmt.Errorf("player with name %s not found", player.Name)
 }
 
+// delete player 
+func (ps *PlayerStore) DeletePlayer (playerId string) error {
+	ps.playerMutex.Lock()
+	defer ps.playerMutex.Unlock()
+	for i, p := range ps.players {
+		if p.ID == playerId {
+			ps.players = append(ps.players[:i], ps.players[i+1:]...)
+			log.Printf("player %s deleted from store\n", p.Name)
+			fmt.Printf("player %s deleted from store\n", p.Name)
+			return nil
+		}
+	}
+	return fmt.Errorf("player with name %s not found", playerId)
+}
+
+// get all players
+func (ps *PlayerStore) GetPlayers() []models.Player {
+	ps.playerMutex.RLock()
+	defer ps.playerMutex.RUnlock()
+	return ps.players
+}

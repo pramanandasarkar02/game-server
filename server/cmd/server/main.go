@@ -5,6 +5,7 @@ import (
 	"github.com/pramanandasarkar02/game-server/internal/api"
 	"github.com/pramanandasarkar02/game-server/internal/game"
 	"github.com/pramanandasarkar02/game-server/internal/matchmaking"
+	"github.com/pramanandasarkar02/game-server/internal/models"
 	"github.com/pramanandasarkar02/game-server/internal/services"
 	"github.com/pramanandasarkar02/game-server/internal/store"
 	"github.com/pramanandasarkar02/game-server/pkg/logger"
@@ -25,6 +26,14 @@ func main() {
 	gameStore := store.NewGameStore()
 	queueStore := store.NewQueueStore()
 	matchStore := store.NewMatchStore()
+
+
+	// create demo user 
+	playerStore.AddPlayer(models.Player{
+		Name: "admin",
+		Password: "password",
+		Email: "admin@example",
+	})
 
 
 

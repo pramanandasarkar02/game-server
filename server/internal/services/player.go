@@ -28,6 +28,10 @@ func (s *PlayerService) ConnectPlayer(req dtos.PlayerConnectionRequest) (dtos.Pl
 		return dtos.PlayerConnectionResponse{}, err
 	}
 
+	// print all players
+	players := s.store.GetAll()
+	fmt.Println("Players:", players)
+
 	player, err := s.store.GetPlayerByUsername(req.Username)
 
 	if err != nil {
