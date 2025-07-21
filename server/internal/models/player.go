@@ -41,7 +41,7 @@ type Player struct {
 }
 
 
-func NewPlayer(username string, password string, email string) *Player {
+func NewPlayer(username string, password string) *Player {
 	return &Player{
 		ID:           GenerateUUID(),
 		Username:     username,
@@ -70,7 +70,7 @@ func (p *Player) AddMatch(matchID string, won bool) {
 
 func (p *Player) SetState(state PlayerState) error {
 	if !state.IsValid() {
-		return fmt.Errorf("Invalid player state: %s", state)
+		return fmt.Errorf("invalid player state: %s", state)
 	}
 	p.State = state
 	p.UpdatedAt = time.Now()
