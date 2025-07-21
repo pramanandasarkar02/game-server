@@ -30,9 +30,8 @@ func main() {
 
 	// create demo user 
 	playerStore.AddPlayer(models.Player{
-		Name: "admin",
+		Username: "admin",
 		Password: "password",
-		Email: "admin@example",
 	})
 
 

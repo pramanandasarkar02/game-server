@@ -3,31 +3,33 @@ package store
 import (
 	"errors"
 	"fmt"
+	"github.com/pramanandasarkar02/game-server/internal/models"
 	"log"
 	"sync"
-	"github.com/pramanandasarkar02/game-server/internal/models"
 )
 
 // in memory player store
 type PlayerStore struct {
-	players []models.Player 		  // for storing players
-	activeSessions map[string]string  // for storing active sessions
-	playerMutex   sync.RWMutex
+	players        []models.Player   // for storing players
+	activeSessions map[string]string // for storing active sessions
+	playerMutex    sync.RWMutex
 	// sessionMutex  sync.RWMutex
 }
 
+func (ps *PlayerStore) GetPlayer(d string) (any, any) {
+	panic("unimplemented")
+}
 
 // create new instance of player store
 func NewPlayerStore() *PlayerStore {
 	return &PlayerStore{
-		players: make([]models.Player, 0),
+		players:        make([]models.Player, 0),
 		activeSessions: make(map[string]string),
 	}
 }
 
-
 // add new player to store
-func (ps *PlayerStore) AddPlayer (player models.Player) error {
+func (ps *PlayerStore) AddPlayer(player models.Player) error {
 	ps.playerMutex.Lock()
 	defer ps.playerMutex.Unlock()
 	ps.players = append(ps.players, player)
@@ -36,21 +38,20 @@ func (ps *PlayerStore) AddPlayer (player models.Player) error {
 	return nil
 }
 
-
 // get player id by username
-func (ps *PlayerStore) GetPlayerIdByUsername (username string) (string, error) {
+func (ps *PlayerStore) GetPlayerIdByUsername(username string) (string, error) {
 	ps.playerMutex.RLock()
 	defer ps.playerMutex.RUnlock()
 	for _, player := range ps.players {
 		if player.Username == username {
 			return player.ID, nil
-		}	
+		}
 	}
 	return "", errors.New("player not found")
 }
 
 // get player by player id
-func (ps *PlayerStore) GetPlayerById (playerId string) (*models.Player, error) {
+func (ps *PlayerStore) GetPlayerById(playerId string) (*models.Player, error) {
 	ps.playerMutex.RLock()
 	defer ps.playerMutex.RUnlock()
 	for _, player := range ps.players {
@@ -61,10 +62,8 @@ func (ps *PlayerStore) GetPlayerById (playerId string) (*models.Player, error) {
 	return nil, errors.New("player not found")
 }
 
-
-
-// update player 
-func (ps *PlayerStore) UpdatePlayer (player models.Player) error {
+// update player
+func (ps *PlayerStore) UpdatePlayer(player models.Player) error {
 	ps.playerMutex.Lock()
 	defer ps.playerMutex.Unlock()
 	for i, p := range ps.players {
@@ -78,8 +77,8 @@ func (ps *PlayerStore) UpdatePlayer (player models.Player) error {
 	return fmt.Errorf("player with name %s not found", player.Username)
 }
 
-// delete player 
-func (ps *PlayerStore) DeletePlayer (playerId string) error {
+// delete player
+func (ps *PlayerStore) DeletePlayer(playerId string) error {
 	ps.playerMutex.Lock()
 	defer ps.playerMutex.Unlock()
 	for i, p := range ps.players {
@@ -94,7 +93,7 @@ func (ps *PlayerStore) DeletePlayer (playerId string) error {
 }
 
 // get all players
-func (ps *PlayerStore) GetPlayers() []models.Player {
+func (ps *PlayerStore) GetPlayers() ([]models.Player) {
 	ps.playerMutex.RLock()
 	defer ps.playerMutex.RUnlock()
 	return ps.players

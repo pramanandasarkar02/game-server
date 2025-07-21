@@ -17,8 +17,8 @@ func NewRouter(playerService *services.PlayerService, playerStore *store.PlayerS
 
 	router.GET("/ping", handlers.PingHandler())
 	router.POST("/register", handlers.PlayerRegisterHandler(playerService))
-	router.POST("/connect", handlers.PlayerConnectionHandler(playerService))
-	router.GET("/players", handlers.GetPlayersHandler(playerStore))
+	// router.POST("/connect", handlers.PlayerConnectionHandler(playerService))
+	// router.GET("/players", handlers.GetPlayersHandler(playerStore))
 	router.GET("/games", handlers.GetGamesHandler(gameStore))
 	router.GET("/queue", handlers.GetQueueHandler(queueStore))
 	router.POST("/queue/join", handlers.JoinQueueHandler(playerStore, gameStore, queueStore))

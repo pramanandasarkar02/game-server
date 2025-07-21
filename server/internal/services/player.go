@@ -1,10 +1,9 @@
 package services
 
 import (
-	"fmt"
-	"time"
-
-	"github.com/dgrijalva/jwt-go"
+	// "fmt"
+	// "time"
+	// "github.com/dgrijalva/jwt-go"
 	"github.com/pramanandasarkar02/game-server/internal/dtos"
 	"github.com/pramanandasarkar02/game-server/internal/models"
 	"github.com/pramanandasarkar02/game-server/internal/store"
@@ -27,24 +26,18 @@ func NewPlayerService(store *store.PlayerStore) *PlayerService {
 func (ps *PlayerService) RegisterPlayer(playerRequest *dtos.PlayerRegisterRequest) (dtos.PlayerRegisterResponse, error) {
 
 	if err := playerRequest.Validate(); err != nil {
-		return dtos.PlayerRegisterResponse{
-			Success: false,
-			Message: err.Error(),
-		}, err
+		return dtos.PlayerRegisterResponse{}, err
 	}
 
 	player := *models.NewPlayer(playerRequest.Username, playerRequest.Password)
 
 	if err := ps.store.AddPlayer(player); err != nil {
-		return dtos.PlayerRegisterResponse{
-			Success: false,
-			Message: err.Error(),
-		}, err
+		return dtos.PlayerRegisterResponse{}, err
 	}
 	
 	return dtos.PlayerRegisterResponse{
-		Success: true,
-		Message: fmt.Sprintf("player %s registered successfully", playerRequest.Username),
+		UserId: player.ID,
+		Username: player.Username,
 	}, nil
 	
 }
@@ -136,22 +129,22 @@ func (ps *PlayerService) RegisterPlayer(playerRequest *dtos.PlayerRegisterReques
 
 
 
-// -------------------------------------------------------------------------- //
+// // -------------------------------------------------------------------------- //
 
-func (s *PlayerService) generateToken(userId, username string) (string, error) {
-	// Generate JWT token
-	token, err := generateJWT(userId, username)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate token: %v", err)
-	}
-	return token, nil
-}
+// func (s *PlayerService) generateToken(userId, username string) (string, error) {
+// 	// Generate JWT token
+// 	token, err := generateJWT(userId, username)
+// 	if err != nil {
+// 		return "", fmt.Errorf("failed to generate token: %v", err)
+// 	}
+// 	return token, nil
+// }
 
-func generateJWT(userId, username string) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id":  userId,
-		"username": username,
-		"exp":      time.Now().Add(24 * time.Hour).Unix(),
-	})
-	return token.SignedString([]byte("SECRET_KEY")) 
-}
+// func generateJWT(userId, username string) (string, error) {
+// 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+// 		"user_id":  userId,
+// 		"username": username,
+// 		"exp":      time.Now().Add(24 * time.Hour).Unix(),
+// 	})
+// 	return token.SignedString([]byte("SECRET_KEY")) 
+// }

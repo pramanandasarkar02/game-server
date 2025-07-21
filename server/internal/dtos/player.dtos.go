@@ -22,8 +22,8 @@ func (dto *PlayerRegisterRequest) Validate() error {
 }
 
 type PlayerRegisterResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
+	UserId string `json:"user_id"`
+	Username string `json:"username"`	
 }
 
 

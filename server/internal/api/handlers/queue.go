@@ -27,17 +27,17 @@ func JoinQueueHandler(playerStore *store.PlayerStore, gameStore *store.GameStore
 			return
 		}
 
-		_, exists := playerStore.GetPlayer(req.PlayerID)
-		if !exists {
-			c.JSON(404, gin.H{"message": fmt.Sprintf("player with ID '%s' not found", req.PlayerID)})
-			return
-		}
+		// _, exists := playerStore.GetPlayer(req.PlayerID)
+		// if !exists {
+		// 	c.JSON(404, gin.H{"message": fmt.Sprintf("player with ID '%s' not found", req.PlayerID)})
+		// 	return
+		// }
 
-		_, exists = gameStore.GetGame(req.GameID)
-		if !exists {
-			c.JSON(404, gin.H{"message": fmt.Sprintf("game with ID '%s' not found", req.GameID)})
-			return
-		}
+		// _, exists = gameStore.GetGame(req.GameID)
+		// if !exists {
+		// 	c.JSON(404, gin.H{"message": fmt.Sprintf("game with ID '%s' not found", req.GameID)})
+		// 	return
+		// }
 
 		queueStore.AddPlayer(req.GameID, req.PlayerID)
 		logger.Info("Player %s joined queue for game %s", req.PlayerID, req.GameID)
