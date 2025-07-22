@@ -41,111 +41,31 @@ func PlayerRegisterHandler(service  *services.PlayerService) gin.HandlerFunc {
     }
 }
 
+func PlayerConnectionHandler(service  *services.PlayerService) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        var playerConnectionRequest dtos.PlayerConnectionRequest
+        if err := c.ShouldBindJSON(&playerConnectionRequest); err != nil {
+            logger.Error("Invalid player connection data: %v", err)
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
 
+        // Validate request
+        if err := playerConnectionRequest.Validate(); err != nil {
+            logger.Error("Validation failed: %v", err)
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
 
+        playerResponse, err := service.ConnectPlayer(&playerConnectionRequest)
+        if err != nil {
+            logger.Error("Failed to connect player: %v", err)
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
 
-// func PlayerHandler(service  *services.PlayerService) gin.HandlerFunc {
-//     return func(c *gin.Context) {
-//         var playerConnectionRequest dtos.PlayerConnectionRequest
-//         if err := c.ShouldBindJSON(&playerConnectionRequest); err != nil {
-//             logger.Error("Invalid player connection data: %v", err)
-//             c.JSON(400, gin.H{"error": err.Error()})
-//             return
-//         }
+        logger.Info("Player %s connected", playerConnectionRequest.Username)
+        c.JSON(200, gin.H{"message": "Player connected successfully", "player": playerResponse})
+    }
+}
 
-//         // Validate request
-//         if err := playerConnectionRequest.Validate(); err != nil {
-//             logger.Error("Validation failed: %v", err)
-//             c.JSON(400, gin.H{"error": err.Error()})
-//             return
-//         }
-
-//         playerResponse, err := service.ConnectPlayer(playerConnectionRequest)
-//         if err != nil {
-//             logger.Error("Failed to connect player: %v", err)
-//             c.JSON(400, gin.H{"error": err.Error()})
-//             return
-//         }
-
-//         logger.Info("Player %s connected", playerConnectionRequest.Username)
-//         c.JSON(200, gin.H{"message": "Player connected successfully", "player": playerResponse})
-//     }
-// }
-
-
-// func PlayerConnectionHandler(service  *services.PlayerService) gin.HandlerFunc {
-//     return func(c *gin.Context) {
-//         var playerConnectionRequest dtos.PlayerConnectionRequest
-//         if err := c.ShouldBindJSON(&playerConnectionRequest); err != nil {
-//             logger.Error("Invalid player connection data: %v", err)
-//             c.JSON(400, gin.H{"error": err.Error()})
-//             return
-//         }
-
-//         // Validate request
-//         if err := playerConnectionRequest.Validate(); err != nil {
-//             logger.Error("Validation failed: %v", err)
-//             c.JSON(400, gin.H{"error": err.Error()})
-//             return
-//         }
-
-//         playerResponse, err := service.ConnectPlayer(playerConnectionRequest)
-//         if err != nil {
-//             logger.Error("Failed to connect player: %v", err)
-//             c.JSON(400, gin.H{"error": err.Error()})
-//             return
-//         }
-
-//         logger.Info("Player %s connected", playerConnectionRequest.Username)
-//         c.JSON(200, gin.H{"message": "Player connected successfully", "player": playerResponse})
-//     }
-// }
-
-// func PlayerRegisterHandler(service  *services.PlayerService) gin.HandlerFunc {
-//     return func(c *gin.Context) {
-//         var playerRegisterRequest dtos.PlayerRegisterRequest
-//         if err := c.ShouldBindJSON(&playerRegisterRequest); err != nil {
-//             logger.Error("Invalid player connection data: %v", err)
-//             c.JSON(400, gin.H{"error": err.Error()})
-//             return
-//         }
-
-//         // Validate request
-//         if err := playerRegisterRequest.Validate(); err != nil {
-//             logger.Error("Validation failed: %v", err)
-//             c.JSON(400, gin.H{"error": err.Error()})
-//             return
-//         }
-
-//         playerResponse, err := service.RegisterPlayer(playerRegisterRequest)
-//         if err != nil {
-//             logger.Error("Failed to connect player: %v", err)
-//             c.JSON(400, gin.H{"error": err.Error()})
-//             return
-//         }
-
-//         logger.Info("Player %s connected", playerResponse.Username)
-//         c.JSON(200, gin.H{"message": "Player connected successfully", "player": playerResponse})
-//     }
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-// --------------------------------------------------------------------------- //
-
-
-// func GetPlayersHandler(store *store.PlayerStore) gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		players := store.GetAll()
-// 		c.JSON(200, gin.H{"players": players})
-// 	}
-// }

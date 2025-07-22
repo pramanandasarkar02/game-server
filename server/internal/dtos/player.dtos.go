@@ -41,3 +41,8 @@ func (dto *PlayerConnectionRequest) Validate() error {
 	}
 	return nil
 }
+
+type PlayerConnectionResponse struct {
+	UserId string `json:"user_id"`
+	Username string `json:"username"`
+}
