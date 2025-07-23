@@ -1,9 +1,6 @@
 package services
 
 import (
-	// "fmt"
-	// "time"
-	// "github.com/dgrijalva/jwt-go"
 	"fmt"
 	"time"
 
@@ -12,7 +9,7 @@ import (
 	"github.com/pramanandasarkar02/game-server/internal/models"
 	"github.com/pramanandasarkar02/game-server/internal/store"
 	"golang.org/x/crypto/bcrypt"
-	// "golang.org/x/crypto/bcrypt"
+
 )
 
 // player service to handle all player related operations
@@ -29,8 +26,9 @@ func NewPlayerService(store *store.PlayerStore) *PlayerService {
 
 
 // generateJWT token for a player
-func generateToken(username string) (string, error) {
+func generateToken(userId, username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId": userId,
 		"username": username,
 		"exp":      jwt.TimeFunc().Add(time.Hour * 24).Unix(),
 		"iat":      jwt.TimeFunc().Unix(),
@@ -61,7 +59,7 @@ func (ps *PlayerService) RegisterPlayer(playerRequest *dtos.PlayerRegisterReques
 		return dtos.PlayerRegisterResponse{}, err
 	}
 	// generate token save session info in db
-	token, err := generateToken(player.Username)
+	token, err := generateToken(player.ID, player.Username)
 	if err != nil {
 		return dtos.PlayerRegisterResponse{}, err
 	}
@@ -92,12 +90,12 @@ func (ps *PlayerService) ConnectPlayer(playerRequest *dtos.PlayerConnectionReque
 	}
 
 	// generate token save session info in db
-	token, err := generateToken(player.Username)
+	token, err := generateToken(player.ID, player.Username)
 	if err != nil {
 		return dtos.PlayerConnectionResponse{}, err
 	}
 
-	// ps.store.SaveToken(playerId, token)
+	ps.store.SaveToken(playerId, token)
 
 	return dtos.PlayerConnectionResponse{
 		UserId: player.ID,
@@ -106,6 +104,26 @@ func (ps *PlayerService) ConnectPlayer(playerRequest *dtos.PlayerConnectionReque
 	}, nil
 }
 
-func (ps *PlayerService) ValidateToken(token, username string) (bool, error) {
-	// check if token is valid
+func (ps *PlayerService) DisconnectPlayer(playerId string) error {
+	return ps.store.DeleteToken(playerId)
+}
+
+func (ps *PlayerService) ValidateToken(tokenString string) (*dtos.PlayerConnectionResponse, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte("secret"), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return &dtos.PlayerConnectionResponse{
+			UserId: claims["userId"].(string),
+			Username: claims["username"].(string),
+			Token: tokenString,
+		}, nil
+	}
+	return nil, err
 }

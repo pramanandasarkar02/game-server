@@ -48,3 +48,14 @@ type PlayerConnectionResponse struct {
 	Username string `json:"username"`
 	Token string `json:"token"`
 }
+
+type PlayerAuthValidationRequest struct {
+	Token string `json:"token"`
+}
+
+func (dto *PlayerAuthValidationRequest) Validate() error {
+	if strings.TrimSpace(dto.Token) == "" {
+		return fmt.Errorf("token is required")
+	}
+	return nil
+}

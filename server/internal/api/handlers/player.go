@@ -69,3 +69,42 @@ func PlayerConnectionHandler(service  *services.PlayerService) gin.HandlerFunc {
     }
 }
 
+func PlayerAuthValidationHandler(service  *services.PlayerService) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        var playerAuthValidationRequest dtos.PlayerAuthValidationRequest
+        if err := c.ShouldBindJSON(&playerAuthValidationRequest); err != nil {
+            logger.Error("Invalid player authentication data: %v", err)
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
+        // Validate request
+        if err := playerAuthValidationRequest.Validate(); err != nil {
+            logger.Error("Validation failed: %v", err)
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
+        playerResponse, err := service.ValidateToken(playerAuthValidationRequest.Token)
+        if err != nil {
+            logger.Error("Failed to validate player: %v", err)
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
+        logger.Info("Player %s authenticated", playerResponse.Username)
+        c.JSON(200, gin.H{"message": "Player authenticated successfully", "player": playerResponse})
+    }
+}
+
+func PlayerDisconnectionHandler(service  *services.PlayerService) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        playerId := c.Param("playerId")
+        err := service.DisconnectPlayer(playerId)
+        if err != nil {
+            logger.Error("Failed to disconnect player: %v", err)
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
+        logger.Info("Player %s disconnected", playerId)
+        c.JSON(200, gin.H{"message": "Player disconnected successfully"})
+    }
+}
+

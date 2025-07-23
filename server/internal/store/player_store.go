@@ -13,7 +13,7 @@ type PlayerStore struct {
 	players        []models.Player   // for storing players
 	activeSessions map[string]string // for storing active sessions
 	playerMutex    sync.RWMutex
-	// sessionMutex  sync.RWMutex
+	sessionMutex  sync.RWMutex
 }
 
 func (ps *PlayerStore) GetPlayer(d string) (any, any) {
@@ -97,4 +97,28 @@ func (ps *PlayerStore) GetPlayers() ([]models.Player) {
 	ps.playerMutex.RLock()
 	defer ps.playerMutex.RUnlock()
 	return ps.players
+}
+
+
+func (ps *PlayerStore) SaveToken(playerId, token string) {
+	ps.sessionMutex.Lock()
+	defer ps.sessionMutex.Unlock()
+	ps.activeSessions[playerId] = token
+}
+func (ps *PlayerStore) GetToken(playerId string) (string, error) {
+	ps.sessionMutex.RLock()
+	defer ps.sessionMutex.RUnlock()
+	token, ok := ps.activeSessions[playerId]
+	if !ok {
+		return "", errors.New("token not found")
+	}
+	return token, nil
+}
+
+
+func (ps *PlayerStore) DeleteToken(playerId string) error {
+	ps.sessionMutex.Lock()
+	defer ps.sessionMutex.Unlock()
+	delete(ps.activeSessions, playerId)
+	return nil
 }
