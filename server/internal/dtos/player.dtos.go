@@ -23,7 +23,8 @@ func (dto *PlayerRegisterRequest) Validate() error {
 
 type PlayerRegisterResponse struct {
 	UserId string `json:"user_id"`
-	Username string `json:"username"`	
+	Username string `json:"username"`
+	Token string `json:"token"`	
 }
 
 
@@ -45,4 +46,5 @@ func (dto *PlayerConnectionRequest) Validate() error {
 type PlayerConnectionResponse struct {
 	UserId string `json:"user_id"`
 	Username string `json:"username"`
+	Token string `json:"token"`
 }

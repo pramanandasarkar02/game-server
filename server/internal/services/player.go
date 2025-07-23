@@ -4,9 +4,14 @@ import (
 	// "fmt"
 	// "time"
 	// "github.com/dgrijalva/jwt-go"
+	"fmt"
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
 	"github.com/pramanandasarkar02/game-server/internal/dtos"
 	"github.com/pramanandasarkar02/game-server/internal/models"
 	"github.com/pramanandasarkar02/game-server/internal/store"
+	"golang.org/x/crypto/bcrypt"
 	// "golang.org/x/crypto/bcrypt"
 )
 
@@ -22,6 +27,18 @@ func NewPlayerService(store *store.PlayerStore) *PlayerService {
 	}
 }
 
+
+// generateJWT token for a player
+func generateToken(username string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"exp":      jwt.TimeFunc().Add(time.Hour * 24).Unix(),
+		"iat":      jwt.TimeFunc().Unix(),
+	})
+	return token.SignedString([]byte("secret"))
+}
+
+
 // register player with username and password
 func (ps *PlayerService) RegisterPlayer(playerRequest *dtos.PlayerRegisterRequest) (dtos.PlayerRegisterResponse, error) {
 
@@ -29,15 +46,30 @@ func (ps *PlayerService) RegisterPlayer(playerRequest *dtos.PlayerRegisterReques
 		return dtos.PlayerRegisterResponse{}, err
 	}
 
-	player := *models.NewPlayer(playerRequest.Username, playerRequest.Password)
+	playerId, _ := ps.store.GetPlayerIdByUsername(playerRequest.Username)
+	if playerId != "" {
+		return dtos.PlayerRegisterResponse{}, fmt.Errorf("player with username %s already exists", playerRequest.Username)
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(playerRequest.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return dtos.PlayerRegisterResponse{}, err
+	}
+
+	player := *models.NewPlayer(playerRequest.Username, string(hashedPassword))
 
 	if err := ps.store.AddPlayer(player); err != nil {
+		return dtos.PlayerRegisterResponse{}, err
+	}
+	// generate token save session info in db
+	token, err := generateToken(player.Username)
+	if err != nil {
 		return dtos.PlayerRegisterResponse{}, err
 	}
 	
 	return dtos.PlayerRegisterResponse{
 		UserId: player.ID,
 		Username: player.Username,
+		Token: token,
 	}, nil
 	
 }
@@ -55,9 +87,25 @@ func (ps *PlayerService) ConnectPlayer(playerRequest *dtos.PlayerConnectionReque
 	if err != nil {
 		return dtos.PlayerConnectionResponse{}, err
 	}
+	if err := bcrypt.CompareHashAndPassword([]byte(player.Password), []byte(playerRequest.Password)); err != nil {
+		return dtos.PlayerConnectionResponse{}, err
+	}
+
+	// generate token save session info in db
+	token, err := generateToken(player.Username)
+	if err != nil {
+		return dtos.PlayerConnectionResponse{}, err
+	}
+
+	// ps.store.SaveToken(playerId, token)
+
 	return dtos.PlayerConnectionResponse{
 		UserId: player.ID,
 		Username: player.Username,
+		Token: token,
 	}, nil
 }
 
+func (ps *PlayerService) ValidateToken(token, username string) (bool, error) {
+	// check if token is valid
+}
