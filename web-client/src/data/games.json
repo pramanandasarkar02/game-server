@@ -1,0 +1,14 @@
+[
+    {
+        "id": "1",
+        "name": "Tic Tac Toe",
+        "description": "Have fun playing Tic Tac Toe with your friends",
+        "image": "images/tic-tac-toe-game.jpg" 
+    },
+    {
+        "id": "2",
+        "name": "Guessing Game",
+        "description": "Have fun playing Guessing Game with your friends",
+        "image": "images/guessing-game.png"
+    }
+]
