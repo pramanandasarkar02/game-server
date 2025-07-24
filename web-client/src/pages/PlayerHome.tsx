@@ -3,23 +3,14 @@ import Header from '../components/Header'
 import GameList from '../components/GameList'
 import Footer from '../components/Footer'
 
-type Props = {}
-
-const PlayerHome = (props: Props) => {
+const PlayerHome = () => {
   return (
-    <div>
-        <div>
-            {/* header */}
-            <Header />
-        </div>
-        <div>
-            {/* Games */}
+    <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow bg-gray-100">
             <GameList />
-        </div>
-        <div>
-            {/* footer  */}
-            <Footer />
-        </div>
+        </main>
+        <Footer />
     </div>
   )
 }
