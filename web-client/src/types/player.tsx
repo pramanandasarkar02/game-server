@@ -23,3 +23,12 @@ export interface WebSocketMessage {
   type: 'chat' | 'move' | 'state';
   data: ChatMessage | { index: number; playerID: string } | TicTacToeState;
 }
+
+
+export interface PlayerInformation {
+  id: string;
+  userName: string;
+  level: number;
+  matchHistory: string[];
+  score: number;
+}

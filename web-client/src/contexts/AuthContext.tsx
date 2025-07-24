@@ -1,6 +1,7 @@
 import { createContext, useState } from "react"
 
 interface Player {
+    id: string
     name: string
     token: string
 }

@@ -46,7 +46,7 @@ const Home: React.FC = () => {
         
         setResponse(`Successfully logged in: ${data.message}`);
         setError('');
-        navigate('/games');
+        navigate('/home');
       } else {
         setError(`Failed to log in: ${data.message}`);
       }
@@ -80,7 +80,7 @@ const Home: React.FC = () => {
         // setToken(data.token);
         setResponse(`Successfully created account: ${data.message}`);
         setError('');
-        navigate('/games');
+        navigate('/home');
       } else {
         setError(`Failed to create account: ${data.message}`);
       }
