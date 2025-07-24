@@ -42,7 +42,15 @@ const Home: React.FC = () => {
       const data = await res.json();
       console.log(data);
       if (res.ok) {
+        
         setPlayer(data.player);
+
+        console.log(data.player);
+
+        // save playerId and token to local storage
+        localStorage.setItem('playerId', data.player.user_id);
+        localStorage.setItem('token', data.player.token);
+        
         
         setResponse(`Successfully logged in: ${data.message}`);
         setError('');
@@ -80,6 +88,10 @@ const Home: React.FC = () => {
         // setToken(data.token);
         setResponse(`Successfully created account: ${data.message}`);
         setError('');
+        // save playerId and token to local storage
+        localStorage.setItem('playerId', data.player.user_id);
+        localStorage.setItem('token', data.player.token);
+
         navigate('/home');
       } else {
         setError(`Failed to create account: ${data.message}`);

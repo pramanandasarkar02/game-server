@@ -127,3 +127,20 @@ func (ps *PlayerService) ValidateToken(tokenString string) (*dtos.PlayerConnecti
 	}
 	return nil, err
 }
+
+// get player info
+func (ps *PlayerService) GetPlayerInfo(playerId string)(*dtos.PlayerInfoResponse, error) {
+	player, err := ps.store.GetPlayerById(playerId)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("player: %v\n", player)
+	return &dtos.PlayerInfoResponse{
+		UserId: player.ID,
+		Username: player.Username,
+		Level: player.Level,
+		Score: player.Score,
+		MatchHistory: player.MatchHistory,
+	}, nil
+
+}

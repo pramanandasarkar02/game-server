@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/pramanandasarkar02/game-server/internal/dtos"
 	"github.com/pramanandasarkar02/game-server/internal/services"
@@ -8,8 +10,6 @@ import (
 	// "github.com/pramanandasarkar02/game-server/internal/models"
 	// "github.com/pramanandasarkar02/game-server/internal/store"
 	"github.com/pramanandasarkar02/game-server/pkg/logger"
-
-
 )
 
 
@@ -108,3 +108,17 @@ func PlayerDisconnectionHandler(service  *services.PlayerService) gin.HandlerFun
     }
 }
 
+
+func PlayerInfoHandler(service  *services.PlayerService) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        playerId := c.Param("playerId")
+        fmt.Printf("playerId: %s\n", playerId)
+        player, err := service.GetPlayerInfo(playerId)
+        if err != nil {
+            logger.Error("Failed to get player: %v", err)
+            c.JSON(400, gin.H{"error": err.Error()})
+            return
+        }
+        c.JSON(200, gin.H{"player": player})
+    }
+}

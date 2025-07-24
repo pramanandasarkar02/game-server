@@ -59,3 +59,13 @@ func (dto *PlayerAuthValidationRequest) Validate() error {
 	}
 	return nil
 }
+
+
+
+type PlayerInfoResponse struct {
+	UserId string `json:"id"`
+	Username string `json:"username"`
+	Level float64 `json:"level"`
+	Score int `json:"score"`
+	MatchHistory map[string]bool `json:"matchHistory"`
+}

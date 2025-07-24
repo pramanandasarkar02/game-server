@@ -47,6 +47,9 @@ func main() {
 
 	// Start API server
 	router := api.NewRouter(playerService, playerStore, gameStore, queueStore, matchStore, cfg)
+
+
+
 	if err := router.Run(":" + cfg.Port); err != nil {
 		logger.Fatal("Failed to run server: %v", err)
 	}
