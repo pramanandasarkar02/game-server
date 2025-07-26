@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { IoSend } from 'react-icons/io5';
 import { FaUserCircle } from 'react-icons/fa';
 import { BsDot } from 'react-icons/bs';
+import { GoDotFill } from 'react-icons/go';
 
 type Friend = {
   id: string;
@@ -176,13 +177,15 @@ const Friends: React.FC = () => {
                 ) : (
                   <FaUserCircle className="text-gray-500 text-4xl" />
                 )}
-                <BsDot
-                  className={`absolute bottom-0 right-0 text-sm bg-white rounded-full ${activeFriend.activeStatus ? 'text-green-500' : 'text-gray-500'}`}
-                />
+                {/* <BsDot
+                  className={`absolute bottom-0 right-0 text-sm bg-gray-700 rounded-full ${activeFriend.activeStatus ? 'text-green-500' : 'text-gray-200'}`}
+                /> */}
+                {/* <GoDotFill className={`absolute bottom-0 right-0 text-sm bg-gray-500 rounded-full ${activeFriend.activeStatus ? 'text-green-500 bg-green-500' : 'text-gray-500'}`} /> */}
               </div>
               <div>
                 <div className="font-medium">{activeFriend.name}</div>
                 <div className="text-sm text-gray-500">
+                    <GoDotFill className={`inline-block mr-1 text-sm ${activeFriend.activeStatus ? 'text-green-500' : 'text-gray-500'}`} />
                   {activeFriend.activeStatus ? 'Online' : 'Offline'}
                 </div>
               </div>
