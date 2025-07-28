@@ -20,4 +20,5 @@ A multiplayer platform built with Golang backend and Vite React frontend that en
 - **Frontend**: Vite + React (user interface)
 - **Real-time**: WebSockets
 - **Database**: (Postgress, Redis)
+- inmemory data structures for game state
 
