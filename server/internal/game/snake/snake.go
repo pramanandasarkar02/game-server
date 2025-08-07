@@ -1,149 +1,277 @@
 package snake
 
 import (
-    "context"
-    "encoding/json"
-    "fmt"
-    "sync"
+	// "crypto/rand"
+	"encoding/json"
+	"log"
+	"net/http"
+	"sync"
+	"time"
+
+	"math/rand"
+
+	"github.com/gorilla/websocket"
 )
 
-type SnakeGameBoard struct {
-    Board   [8][8]string `json:"board"`
-    Turn    string       `json:"turn"`
-    Winner  string       `json:"winner"`
-    Players []string     `json:"players"`
+
+type PlayerSnakeState struct {
+    ID string `json:"id"`
+    X int   `json:"x"`
+    Y int   `json:"y"`
+    Direction Point `json:"direction"`
+    Tail []Point    `json:"tail"`
+    Length int     `json:"length"`
+    Score int      `json:"score"`
+    Alive bool     `json:"alive"`
 }
 
-type SnakeGame struct {
-    boards map[string]*SnakeGameBoard
-    mutex  sync.RWMutex
+type Point struct {
+    X int
+    Y int
 }
 
-type Move struct {
-    X int `json:"x"`
-    Y int `json:"y"`
+type GameState struct {
+    PlayerSnakerStates map[string]*PlayerSnakeState `json:"player_snake_states"`
+    Food []Point    `json:"food"`
+    Poison []Point   `json:"poison"`
+    Width int   `json:"width"`
+    Height int  `json:"height"`
+    FoodValue int `json:"food_value"`
+    mu sync.Mutex
 }
 
-func NewSnakeGame() *SnakeGame {
-    return &SnakeGame{
-        boards: make(map[string]*SnakeGameBoard),
+type Queue struct {
+    PlayerSnakerStates []PlayerSnakeState
+    mu sync.Mutex
+}
+
+
+var (
+    upgrader = websocket.Upgrader{
+        ReadBufferSize:  1024,
+        WriteBufferSize: 1024,
+        CheckOrigin: func(r *http.Request) bool {
+            return true
+        },
     }
-}
-
-func (s *SnakeGame) ID() string {
-    return "a4"
-}
-
-func (s *SnakeGame) Title() string {
-    return "Snake Game"
-}
-
-func (s *SnakeGame) RequiredPlayers() int {
-    return 4
-}
-
-func (s *SnakeGame) InitializeState(matchID string, players []string) {
-    s.mutex.Lock()
-    defer s.mutex.Unlock()
-    board := &SnakeGameBoard{
-        Board:   [8][8]string{},
-        Turn:    players[0],
-        Players: players,
+    
+    gameState = &GameState{
+        PlayerSnakerStates: map[string]*PlayerSnakeState{},
+        Food: []Point{},
+        Poison: []Point{},
+        Width: 80,
+        Height: 60,
+        FoodValue: 10,
     }
-    board.Board[0][0] = players[0]
-    board.Board[7][0] = players[1]
-    board.Board[7][7] = players[2]
-    board.Board[0][7] = players[3]
-    s.boards[matchID] = board
+
+    conns     = make(map[string]*websocket.Conn)
+	connsMu   sync.Mutex
+	ticker    = time.NewTicker(200 * time.Millisecond) // Game updates every 200ms
+	// rand.Seed(time.Now().UnixNano())
+)
+
+func broadcastGameState() {
+    gameState.mu.Lock()
+    data, err := json.Marshal(gameState)
+    gameState.mu.Unlock()
+    if err != nil {
+        log.Println("Failed to marshal game state:", err)
+        return
+    }
+    
+    connsMu.Lock()
+    defer connsMu.Unlock()
+    for id, conn := range conns {
+        if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+            log.Println("Failed to broadcast game state:", err)
+
+            conn.Close()
+            delete(conns, id)
+            gameState.mu.Lock()
+            delete(gameState.PlayerSnakerStates, id)
+            gameState.mu.Unlock()
+        }
+    }
+    
 }
 
-func (s *SnakeGame) GetState(matchID string) interface{} {
-    s.mutex.RLock()
-    defer s.mutex.RUnlock()
-    board, exists := s.boards[matchID]
-    if !exists {
-        return nil
-    }
-    return board
+func spawnFoodOrPoison(isFood bool) {
+    gameState.mu.Lock()
+    defer gameState.mu.Lock()
+    var pos Point 
+    for {
+		pos = Point{X: rand.Intn(gameState.Width), Y: rand.Intn(gameState.Height)}
+		occupied := false
+		for _, p := range gameState.Food {
+			if p == pos {
+				occupied = true
+				break
+			}
+		}
+		for _, p := range gameState.Poison {
+			if p == pos {
+				occupied = true
+				break
+			}
+		}
+		for _, snake := range gameState.PlayerSnakerStates {
+			if (snake.X == pos.X && snake.Y == pos.Y) || containsPoint(snake.Tail, pos) {
+				occupied = true
+				break
+			}
+		}
+		if !occupied {
+			break
+		}
+	}
+	if isFood {
+		gameState.Food = append(gameState.Food, pos)
+	} else {
+		gameState.Poison = append(gameState.Poison, pos)
+	}
 }
 
-func checkValidMove(board [8][8]string, x, y int, player string) bool {
-    if x < 0 || x >= 8 || y < 0 || y >= 8 {
-        return false
-    }
-    if board[x][y] != "" {
-        return false
-    }
-    for dx := -1; dx <= 1; dx++ {
-        for dy := -1; dy <= 1; dy++ {
-            if dx == 0 && dy == 0 {
-                continue
-            }
-            nx, ny := x + dx, y + dy
-            if nx >= 0 && nx < 8 && ny >= 0 && ny < 8 && board[nx][ny] == player {
-                return true
-            }
+func containsPoint(points []Point, p Point) bool {
+    for _, point := range points {
+        if point.X == p.X && point.Y == p.Y {
+            return true
         }
     }
     return false
 }
 
-func checkTermination(board [8][8]string, player string) bool {
-    for x := 0; x < 8; x++ {
-        for y := 0; y < 8; y++ {
-            if checkValidMove(board, x, y, player) {
-                return false
+
+func gameLoop() {
+    for range ticker.C {
+        gameState.mu.Lock()
+
+        for _, snake := range gameState.PlayerSnakerStates {
+            if !snake.Alive {
+                continue
             }
+            newX, newY := snake.X + snake.Direction.X, snake.Y + snake.Direction.Y
+            // out ranged
+            if newX < 0 || newX >= gameState.Width || newY < 0 || newY >= gameState.Height {
+                snake.Alive = false
+                continue
+            }
+            // self collision
+            if containsPoint(snake.Tail, Point{newX, newY}) {
+                snake.Alive = false
+                continue
+            }
+
+            // update position
+            snake.Tail = append([]Point{{
+                X: snake.X,
+                Y: snake.Y,
+            }}, snake.Tail[:snake.Length]...)
+            snake.X, snake.Y = newX, newY
+
+            // check food
+            for i, food := range gameState.Food {
+                if snake.X == food.X && snake.Y == food.Y {
+                    snake.Length++
+                    snake.Score += gameState.FoodValue
+                    gameState.Food = append(gameState.Food[:i], gameState.Food[i+1:]...)
+                    spawnFoodOrPoison(true)
+                    break
+                }
+            }
+
+            // check poison position
+            for i, poison := range gameState.Poison {
+                if snake.X == poison.X && snake.Y == poison.Y {
+                    snake.Alive = false
+                    gameState.Poison = append(gameState.Poison[:i], gameState.Poison[i+1:]...)
+                    spawnFoodOrPoison(false)
+                    break
+                }
+            }
+
         }
+        if len(gameState.Food) == 0 {
+            spawnFoodOrPoison(true)
+        }
+        if len(gameState.Poison) == 0 {
+            spawnFoodOrPoison(false)
+        }
+        gameState.mu.Unlock()
+        broadcastGameState()
     }
-    return true
 }
 
-func (s *SnakeGame) HandleMove(ctx context.Context, matchID string, playerID string, moveData interface{}) error {
-    s.mutex.Lock()
-    defer s.mutex.Unlock()
 
-    board, exists := s.boards[matchID]
-    if !exists {
-        return fmt.Errorf("match %s not found", matchID)
-    }
 
-    if board.Winner != "" {
-        return fmt.Errorf("game is over")
-    }
-    if board.Turn != playerID {
-        return fmt.Errorf("not player's turn")
-    }
 
-    var move Move
-    data, err := json.Marshal(moveData)
+func handleConnecttions(w http.ResponseWriter, r *http.Request) {
+    conn, err := upgrader.Upgrade(w, r, nil)
     if err != nil {
-        return fmt.Errorf("failed to marshal move data: %v", err)
+        log.Println(err)
+        http.Error(w, "Something went wrong", http.StatusBadRequest)
+        return 
     }
-    if err := json.Unmarshal(data, &move); err != nil {
-        return fmt.Errorf("invalid move data: %v", err)
+    id := r.URL.Query().Get("id")
+    if id == "" {
+        conn.Close()
+        return 
     }
-
-    if !checkValidMove(board.Board, move.X, move.Y, playerID) {
-        return fmt.Errorf("invalid move to (%d, %d)", move.X, move.Y)
+    gameState.mu.Lock()
+    snake := &PlayerSnakeState{
+        ID: id,
+        X: rand.Intn(gameState.Width),
+        Y: rand.Intn(gameState.Height),
+        Direction: Point{X: 1, Y: 0},
+        Tail: []Point{},
+        Length: 1,
+        Score: 0,
+        Alive: true,
     }
+    gameState.PlayerSnakerStates[id] = snake
+    gameState.mu.Unlock()
 
-    board.Board[move.X][move.Y] = playerID
+    connsMu.Lock()
+    conns[id] = conn
+    connsMu.Unlock()
 
-    if checkTermination(board.Board, playerID) {
-        board.Winner = playerID
-        return nil
-    }
-
-    currentIndex := 0
-    for i, p := range board.Players {
-        if p == playerID {
-            currentIndex = i
-            break
+    for {
+        _, msg, err := conn.ReadMessage()
+        if err != nil {
+            log.Printf("Error reading from %s: %v", id, err)
+            conn.Close()
+            connsMu.Lock()
+            delete(conns, id)
+            connsMu.Unlock()
+            gameState.mu.Lock()
+            delete(gameState.PlayerSnakerStates, id)
+            gameState.mu.Unlock()
+            broadcastGameState()
+            return 
+        }
+        var input struct{
+            Type string `json:"type"`
+            Direction Point `json:"direction"`
+        }
+        if err:= json.Unmarshal(msg, &input); err == nil && input.Type == "setDirection" {
+            gameState.mu.Lock()
+            if snake, exists := gameState.PlayerSnakerStates[id]; exists && snake.Alive {
+                if (snake.Direction.X != input.Direction.X || snake.Direction.Y != input.Direction.Y) && (input.Direction.X == 0 || input.Direction.Y == 0)  && (snake.Direction.X != 0 || snake.Direction.Y != 0) {
+                    snake.Direction = input.Direction
+                }
+            }
+            gameState.mu.Unlock()
         }
     }
-    nextIndex := (currentIndex + 1) % len(board.Players)
-    board.Turn = board.Players[nextIndex]
+}
 
-    return nil
+func StartGame() {
+    spawnFoodOrPoison(true)
+    spawnFoodOrPoison(false)
+    go gameLoop()
+}
+
+func SetupRoutes() {
+    http.HandleFunc("/ws", handleConnecttions)
+    go StartGame()
+    log.Fatal(http.ListenAndServe(":8080", nil))
 }

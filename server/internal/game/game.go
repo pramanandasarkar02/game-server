@@ -1,11 +1,11 @@
 package game
 
 import (
-    "context"
-    "sync"
+	"context"
+	"sync"
 
-    "github.com/pramanandasarkar02/game-server/internal/game/snake"
-    "github.com/pramanandasarkar02/game-server/internal/game/tictactoe"
+	"github.com/pramanandasarkar02/game-server/internal/game/snake"
+	"github.com/pramanandasarkar02/game-server/internal/game/tictactoe"
 )
 
 type Game interface {
@@ -28,7 +28,7 @@ var registry = &gameRegistry{
 
 func init() {
     RegisterGame(TicTacToeGame())
-    RegisterGame(SnakeGame())
+
 }
 
 func RegisterGame(g Game) {
@@ -47,6 +47,6 @@ func TicTacToeGame() Game {
     return tictactoe.NewTicTacToe()
 }
 
-func SnakeGame() Game {
-    return snake.NewSnakeGame()
+func SnakeGame() {
+    snake.SetupRoutes()
 }
