@@ -1,24 +1,4 @@
-# Game Server - Multiplayer Mini-Games Platform
+# Game Server
+A multiplayer games platform
 
-## Overview
-A multiplayer platform built with Golang backend and Vite React frontend that enables players to:
-- Join game queues
-- Get matched with other players
-- Play mini-games together
-- Chat in real-time
-
-## Features
-
-### Core Functionality
-- **Player Queue System**  
-- **Smart Matchmaking**  
-- **Multiplayer Game Sessions**  
-- **Real-time Chat** (in-game and lobby)
-
-### Technical Stack
-- **Backend**: Golang (game server, matchmaking)
-- **Frontend**: Vite + React (user interface)
-- **Real-time**: WebSockets
-- **Database**: (Postgress, Redis)
-- inmemory data structures for game state
 
