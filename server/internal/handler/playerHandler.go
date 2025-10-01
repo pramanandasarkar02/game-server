@@ -1,9 +1,8 @@
 package handler
 
 import (
-	"encoding/json"
 	"game-server/internal/service"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
 type PlayerHandler struct {
@@ -17,52 +16,52 @@ func NewPlayerHandler(ps *service.PlayerService) *PlayerHandler {
 }
 
 // Login handler
-func (ph *PlayerHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (ph *PlayerHandler) Login(c *gin.Context) {
 	var req service.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "invalid request body"})
 		return
 	}
 
 	player, err := ph.playerService.Login(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
 
-	json.NewEncoder(w).Encode(player)
+	c.JSON(200, player)
 }
 
 // Logout handler
-func (ph *PlayerHandler) Logout(w http.ResponseWriter, r *http.Request) {
+func (ph *PlayerHandler) Logout(c *gin.Context) {
 	var req service.LogOutRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "invalid request body"})
 		return
 	}
 
 	message, err := ph.playerService.Logout(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{"message": message})
+	c.JSON(200, gin.H{"message": message})
 }
 
 // Signup handler
-func (ph *PlayerHandler) SignUp(w http.ResponseWriter, r *http.Request) {
+func (ph *PlayerHandler) SignUp(c *gin.Context) {
 	var req service.SignupRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "invalid request body"})
 		return
 	}
 
 	player, err := ph.playerService.Signup(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	json.NewEncoder(w).Encode(player)
+	c.JSON(200, player)
 }

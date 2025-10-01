@@ -4,10 +4,10 @@ import (
 	"game-server/internal/handler"
 	"game-server/internal/service"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func PlayerRegisterRoutes(router *mux.Router) {
+func PlayerRegisterRoutes(router *gin.Engine) {
 	// create service
 	playerService := service.NewPlayerService()
 
@@ -15,7 +15,7 @@ func PlayerRegisterRoutes(router *mux.Router) {
 	playerHandler := handler.NewPlayerHandler(playerService)
 
 	// register routes
-	router.HandleFunc("/api/login", playerHandler.Login).Methods("POST")
-	router.HandleFunc("/api/logout", playerHandler.Logout).Methods("POST")
-	router.HandleFunc("/api/signup", playerHandler.SignUp).Methods("POST")
+	router.POST("/api/login", playerHandler.Login)
+	router.POST("/api/logout", playerHandler.Logout)
+	router.POST("/api/signup", playerHandler.SignUp)
 }
