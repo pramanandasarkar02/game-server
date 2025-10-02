@@ -2,6 +2,7 @@ import axios from "axios";
 import { useContext, useState } from "react";
 import PlayerContext from "../context/PlayerContext";
 import type { Player } from "../types/player";
+import { useNavigate } from "react-router-dom";
 
 type LoginRequest = {
   username: string;
@@ -12,7 +13,7 @@ const Login = () => {
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [message, setMessage] = useState<string>("");
-
+  const navigate = useNavigate();
   const {setPlayer } = useContext(PlayerContext);
 
   const OnLoginButtonAction = async (e: React.FormEvent) => {
@@ -32,6 +33,7 @@ const Login = () => {
       setPlayer(newPlayer);
 
       setMessage(data.message || "Login successful");
+      navigate("/")
     } catch (error: any) {
       console.error("Login error:", error);
       setMessage(error.response?.data?.message || "Login failed");
