@@ -1,5 +1,7 @@
 import axios from "axios";
-import { useState } from "react";
+import { useContext, useState } from "react";
+import PlayerContext from "../context/PlayerContext";
+import type { Player } from "../types/player";
 
 type LoginRequest = {
   username: string;
@@ -11,6 +13,8 @@ const Login = () => {
   const [password, setPassword] = useState<string>("");
   const [message, setMessage] = useState<string>("");
 
+  const {setPlayer } = useContext(PlayerContext);
+
   const OnLoginButtonAction = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -19,10 +23,18 @@ const Login = () => {
     try {
       const response = await axios.post("http://localhost:8080/api/login", loginData);
       const data = response.data;
+
+      const newPlayer: Player = {
+        username: data.username,
+        userId: data.userId,
+        playerStatus: data.playerStatus,
+      };
+      setPlayer(newPlayer);
+
       setMessage(data.message || "Login successful");
     } catch (error: any) {
       console.error("Login error:", error);
-      setMessage("Failed to connect to the server");
+      setMessage(error.response?.data?.message || "Login failed");
     }
   };
 
@@ -30,7 +42,7 @@ const Login = () => {
     <div>
       <form onSubmit={OnLoginButtonAction}>
         <div>
-          <h1>Enter Username: </h1>
+          <h1>Enter Username:</h1>
           <input
             type="text"
             value={username}
@@ -49,7 +61,10 @@ const Login = () => {
         </div>
         <button type="submit">Login</button>
       </form>
+
+      {/* Display login status */}
       {message && <p>{message}</p>}
+      
     </div>
   );
 };
