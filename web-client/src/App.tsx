@@ -4,6 +4,8 @@ import { useContext } from 'react'
 import PlayerContext from './context/PlayerContext'
 import Home from './pages/Home'
 import Signup from './pages/Signup'
+import SnakeGame from './pages/SnakeGame'
+import MatchMake from './pages/MatchMake'
 
 function App() {
   const {player} = useContext(PlayerContext);
@@ -13,6 +15,8 @@ function App() {
       <Route path='/' element = {player ? <Home /> :<Navigate to="/login" />}/>
       <Route path='/login' element ={<Login />}/>
       <Route path='/signup' element ={<Signup />}/>
+      <Route path='/snake-game/game-canvas/:gameId/:playerId' element={<SnakeGame />} />
+      <Route path='/match-make' element={<MatchMake />} />
     </Routes>
     </BrowserRouter>
   )

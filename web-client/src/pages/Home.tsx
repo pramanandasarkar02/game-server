@@ -1,10 +1,12 @@
 import { useContext } from "react"
 import PlayerContext from "../context/PlayerContext"
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
     const {player} = useContext(PlayerContext);
+    const navigate =  useNavigate();
     const findMatchButton = async () => {
-
+        navigate("/match-make")
     }
 
 
