@@ -144,7 +144,7 @@ const SnakeGame = () => {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-900">
       <div className="bg-gray-800 rounded-lg px-4 py-3 shadow-lg">
         <div className="text-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-100">🐍 Snake Game</h1>
+          <h1 className="text-2xl font-bold text-gray-100">Snake Game</h1>
           <div className="flex justify-between items-center text-sm text-gray-400 mb-1">
             <span>Game: {gameId}</span>
             <span>Player: {playerId}</span>
@@ -164,7 +164,7 @@ const SnakeGame = () => {
         </div>
 
         <div
-          className="relative bg-gray-700 rounded overflow-hidden border-4 border-gray-500 shadow-lg"
+          className="relative bg-gray-700 rounded overflow-hidden shadow-lg"
           style={{
             width: `${GRID_SIZE * CELL_SIZE}px`,
             height: `${GRID_SIZE * CELL_SIZE}px`,
