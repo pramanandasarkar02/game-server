@@ -2,6 +2,7 @@ package snake
 
 import "game-server/internal/service"
 
+
 type SnakeController struct {
 	Snake *Snake
 	Player *service.Player 

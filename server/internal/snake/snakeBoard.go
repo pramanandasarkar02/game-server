@@ -19,6 +19,18 @@ type SnakeBoard struct{
 	Obstacle []Point
 	Width int 
 	Height int
+	minimumFood int 
+	numberOfFoodRange int 
+	obstacles []Obstacle
 }
 
-func generateFood()
+
+func NewSnakeBoard() *SnakeBoard{
+	return &SnakeBoard{
+		
+	}
+}
+
+func (sb *SnakeBoard)generateFood(){
+	
+}

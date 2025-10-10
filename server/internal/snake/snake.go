@@ -1,11 +1,14 @@
 package snake
 
-import "time"
+import (
+	"log"
+	"time"
+)
 
 // Point represents a position on the grid
 type Point struct {
-	X int32
-	Y int32
+	X int
+	Y int
 }
 
 // Score holds the current score of the snake
@@ -95,8 +98,30 @@ func checkFood(foods []Food, head Point) (bool, Food) {
 	return false, Food{}
 }
 
-func checkCollision(head Point, snakes []Snake) {
+func checkCollision(head Point, snakeBody []Point, gameBoard SnakeBoard)(bool, string) {
+	// board reange
+	if (head.X < 0 || head.X >= gameBoard.Width) || (head.Y < 0 || head.Y >= gameBoard.Height) {
+		return true, "Out of range"
+	}
 
+	// obstacle
+	// for _, obs := range gameBoard.obstacles {
+	// 	if head.X == obs.X && head.Y == obs.Y{
+	// 		return true, "Hit Obstacle"
+	// 	}
+	// }
+
+	// other snake 
+	
+
+	// self body
+	for _, part := range snakeBody {
+		if head.X == part.X && head.X == part.Y {
+			return true, "Self Collision"
+		}
+	}
+	
+	return false, ""
 }
 
 func executeMovement(newHead Point, snake *Snake, isFood bool){
@@ -110,9 +135,15 @@ func executeMovement(newHead Point, snake *Snake, isFood bool){
 // One tick time one execution
 func (s *Snake) Movement(gameBoard SnakeBoard) {
 	newHeadPosition := exeucteDirMovement(s.SnakeHead, s.Direction)
+
+	if isCollision, msg := checkCollision(newHeadPosition, s.SnakeBody, gameBoard); isCollision {
+		log.Panicf("there is a collision %s", msg)
+	}
+
 	if isFood, food := checkFood(gameBoard.Foods, newHeadPosition); isFood {
 		executeMovement(newHeadPosition, s, isFood)
 		s.Score.Value += food.Value
 	}
 
+	executeMovement(newHeadPosition, s, false)
 }
