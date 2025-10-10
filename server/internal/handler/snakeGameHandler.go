@@ -8,22 +8,20 @@ import (
 
 
 type SnakeHandler struct{
-	snakeService *snake.SnakeBoard
+	snakeService *snake.SnakeService
 }
 
 
-func NewSnakeHandler() *SnakeHandler{
+func NewSnakeHandler(ss * snake.SnakeService) *SnakeHandler{
 	return &SnakeHandler{
-
+		snakeService: ss,
 	}
 }
 
 
 func (sh *SnakeHandler) MetaData(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "snake game meta data",
-
-	})
+	gameMetaData := sh.snakeService.SnakeGameMetaData()
+	c.JSON(200, gameMetaData)
 }
 
 func (sh *SnakeHandler) GameMetaData(c *gin.Context){
