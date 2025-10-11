@@ -18,6 +18,7 @@ func main() {
 	// Register API routes
 	api.PlayerRegisterRoutes(router)
 	api.SnakeGameDataRoutes(router)
+	api.MatchMakeRoutes(router)
 
 	// Echo Server endpoint
 	router.GET("/api", func(c *gin.Context) {
