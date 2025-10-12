@@ -35,6 +35,7 @@ type PlayerMatchResponse struct{
 func NewMatchMakeService() *MatchMakeService{
 	return &MatchMakeService{
 		queue: make(map[string]string),
+		matches: make(map[string]GameEnv),
 	}
 }
 
@@ -69,7 +70,7 @@ func(ms *MatchMakeService)RemoveQueue(playerId string) error{
 func (ms *MatchMakeService) GetMatch(playerId string) (*PlayerMatchResponse, error) {
 
 	if _, exists := ms.matches[playerId]; !exists{
-		return &PlayerMatchResponse{}, fmt.Errorf("playerId %v not found in the current matches")
+		return &PlayerMatchResponse{}, fmt.Errorf("playerId %v not found in the current matches", playerId)
 	}
 
 	gameEnv := ms.matches[playerId]
@@ -106,7 +107,7 @@ func (ms *MatchMakeService) matchMake(gameId string){
 
 		for _, p := range players{
 			delete(ms.queue, p)
-			ms.matches[matchId] = gameEnv
+			ms.matches[p] = gameEnv
 		}
 		log.Printf("Match %v created successfully", matchId)
 	}
