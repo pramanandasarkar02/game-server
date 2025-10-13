@@ -18,6 +18,7 @@ func SnakeGameDataRoutes(router *gin.Engine) {
 	router.GET("/api/game/snake/meta-data",snakeGameHandler.MetaData)
 	router.GET("/api/game/snake/meta-data/:playerId", snakeGameHandler.GameMetaData)
 
+	router.GET("ws", snake.WsHandler)
 
 	
 }

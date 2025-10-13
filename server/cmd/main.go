@@ -20,6 +20,8 @@ func main() {
 	api.SnakeGameDataRoutes(router)
 	api.MatchMakeRoutes(router)
 
+	
+
 	// Echo Server endpoint
 	router.GET("/api", func(c *gin.Context) {
 		c.String(http.StatusOK, "Echo from game-server")
