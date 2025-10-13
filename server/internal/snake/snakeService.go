@@ -1,5 +1,7 @@
 package snake
 
+import "game-server/internal/service"
+
 
 const(
 	MAX_RUNNING_SNAKE_GAMES = 10
@@ -37,4 +39,8 @@ func(ss * SnakeService) SnakeGameMetaData() *SnakeGameMetaDataResponse {
 		BoardHeight: BOARD_HEIGHT,
 		CellSize:    CELL_SIZE,
 	}
+}
+
+func (ss *SnakeService) StartGame(gameEnv service.GameEnv ){
+	
 }
