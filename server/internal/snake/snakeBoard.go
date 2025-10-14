@@ -3,17 +3,17 @@ package snake
 import "math/rand/v2"
 
 type Food struct{
-	Position Point 
-	Value int
+	Position Point 		`json:"position"`
+	Value int			`json:"value"`
 }
 
 type Obstacle struct{
-	Object []Point
+	Object []Point 		`json:"object"`
 }
 
 
 type SnakeBoard struct{
-	SnakeControllers map[string]SnakeController
+	SnakeControllers map[string]*SnakeController
 	Foods []Food
 	Width int 
 	Height int
@@ -23,41 +23,73 @@ type SnakeBoard struct{
 }
 
 type SnakeBoardPlayerInformation struct{
-	PlayerSnake Snake
-	PlayerId string
-	Foods []Food
-	OtherSnake []Snake
-	Obstacles []Obstacle 
+	PlayerSnake Snake 	`json:"playerSnake"`
+	PlayerId string		`json:"playerId"`
+	Foods []Food		`json:"foods"`
+	OtherSnakes []Snake	`json:"otherSnakes"`
+	Obstacles []Obstacle `json:"obstacles"`
 }
 
 
 
 func NewSnakeBoard() *SnakeBoard{
-
-
 	return &SnakeBoard{
-		
+		SnakeControllers: make(map[string]*SnakeController),
+		Foods: make([]Food, 0),
 	}
 }
 
-func (sb *SnakeBoard)generateFood(){
+func (sb *SnakeBoard)GenerateFood(){
 	snakes := make([]Snake, 0)
 	for _, sc := range sb.SnakeControllers{
 		snakes = append(snakes, *sc.Snake)
 	}
 	numberOfFood := sb.minimumFood + rand.IntN(sb.numberOfFoodRange)
-	for _ := range(numberOfFood){
+	for len(sb.Foods) < numberOfFood {
+		x := rand.IntN(sb.Width)
+		y := rand.IntN(sb.Height)
+
+		newFood := Food{
+			Position: Point{
+				X: x,
+				Y: y,
+			},
+			Value: 1 + rand.IntN(5),
+		}
+		if sb.isOccupied(newFood.Position, snakes, sb.Obstacles){
+			continue
+		}
+		sb.Foods =append(sb.Foods, newFood)
+	}
+}
+
+func (sb *SnakeBoard)isOccupied(p Point, snakes []Snake, obstacles []Obstacle) bool{
+	for _, s := range(snakes){
+		for _, body := range s.SnakeBody{
+			if body.X == p.X && body.Y == p.Y {
+				return true
+			}
+		}
+		if s.SnakeHead.X == p.X && s.SnakeHead.Y == p.Y {
+			return true
+		}
+		for _, obs := range obstacles {
+			for _ , o := range obs.Object {
+				if o.X == p.X && o.Y == p.Y {
+					return true
+				}
+			}
+		}
 		
 	}
-
-
-
+	return false 
 }
 
 
 func (sb *SnakeBoard)ExecutePlayerMovement(playerId string, direction Direction){
-	snakeController := sb.SnakeControllers[playerId]
-	snakeController.KeyboardController(direction)
+	if sc, ok := sb.SnakeControllers[playerId]; ok {
+		sc.KeyboardController(direction)
+	}
 }
 
 func (sb * SnakeBoard)GetSnakeBoard(playerId string) SnakeBoardPlayerInformation{
@@ -65,6 +97,7 @@ func (sb * SnakeBoard)GetSnakeBoard(playerId string) SnakeBoardPlayerInformation
 	playerSnake := snakeController.Snake
 	foods := sb.Foods
 	obstacles := sb.Obstacles
+
 	otherSnakes := make([]Snake, 0)
 	for pId, sc := range(sb.SnakeControllers){
 		if pId != playerId {
@@ -77,7 +110,8 @@ func (sb * SnakeBoard)GetSnakeBoard(playerId string) SnakeBoardPlayerInformation
 		PlayerSnake: *playerSnake,
 		Foods: foods,
 		Obstacles: obstacles,
-		OtherSnake: otherSnakes,
+		OtherSnakes: otherSnakes,
+		
 	}
 	return snakeBoardPlayerInformation
 
