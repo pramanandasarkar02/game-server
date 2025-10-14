@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -16,10 +17,15 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var matchConnections = make(map[string]map[string]*websocket.Conn)
-var matchConnMutex sync.Mutex
 
-var snakeService = NewSnakeService()
+var (
+	matchConnections = make(map[string]map[string]*websocket.Conn)
+	matchConnMutex sync.Mutex
+	activeMatches = make(map[string]bool)
+	activeMatchLock sync.Mutex
+	snakeService = NewSnakeService()
+)
+
 
 
 
@@ -78,12 +84,20 @@ func unregisterConnection(matchId, playerId string) {
 }
 
 
-func boradcastToMatch(matchId string, chat PlayerChat){
+func broadcastChatToMatch(matchId string, chat PlayerChat){
 	matchConnMutex.Lock()
 	defer matchConnMutex.Unlock()
 
 	for _, conn := range matchConnections[matchId] {
 		conn.WriteMessage(websocket.TextMessage, []byte(chat.Message))
+	}
+}
+func broadcastToMatch(matchId string, message []byte){
+	matchConnMutex.Lock()
+	defer matchConnMutex.Unlock()
+
+	for _, conn := range matchConnections[matchId] {
+		conn.WriteMessage(websocket.TextMessage, message)
 	}
 }
 
@@ -143,5 +157,68 @@ func handleChat(matchId, playerId string, input []byte){
 		return
 	}
 
-	boradcastToMatch(matchId, chat)
+	broadcastChatToMatch(matchId, chat)
+}
+
+func startMatchLoopOnce(matchId string){
+	activeMatchLock.Lock()
+	defer activeMatchLock.Unlock()
+
+	if activeMatches[matchId]{
+		return 
+	}
+
+	activeMatches[matchId] = true
+	go func() {
+		defer func(){
+			activeMatchLock.Lock()
+			delete(activeMatches, matchId)
+			activeMatchLock.Unlock()
+			log.Printf("Match loop ended for %s", matchId)
+		}()
+		log.Printf("Starting match loop for %s", matchId)
+		ticker100ms := time.NewTicker(100 * time.Microsecond)
+		ticker1s := time.NewTicker(1 * time.Second)
+
+		defer ticker100ms.Stop()
+		defer ticker1s.Stop()
+
+		for {
+			select {
+			case <- ticker100ms.C:
+				broadcastBoardState(matchId)
+			case <- ticker1s.C:
+				snakeService.GenerateFood(matchId)
+			}
+
+			matchConnMutex.Lock()
+			activePlayers := len(matchConnections[matchId])
+			matchConnMutex.Unlock()
+
+			if activePlayers == 0{
+				log.Printf("No active player in match %s - stopping loop", matchId)
+				return 
+			}
+		}
+
+	}()
+}
+
+func broadcastBoardState(matchId string){
+	matchConnMutex.Lock()
+	playerIds := make([]string, 0, len(matchConnections[matchId]))
+	for pId := range matchConnections[matchId]{
+		playerIds = append(playerIds, pId)
+	}
+	matchConnMutex.Unlock()
+	for _, playerId := range playerIds {
+		boardState := snakeService.GetBoardStats(matchId, playerId)
+		stateJSON, err := json.Marshal(boardState)
+		if err != nil{
+			log.Println("Error Marshalling board state: ", err)
+			continue 
+		}
+		broadcastToMatch(matchId, stateJSON)
+		
+	}
 }
