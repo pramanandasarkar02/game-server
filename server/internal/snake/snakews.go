@@ -19,6 +19,8 @@ var upgrader = websocket.Upgrader{
 var matchConnections = make(map[string]map[string]*websocket.Conn)
 var matchConnMutex sync.Mutex
 
+var snakeService = NewSnakeService()
+
 
 
 
@@ -76,12 +78,12 @@ func unregisterConnection(matchId, playerId string) {
 }
 
 
-func boradcastToMatch(matchId string, message []byte){
+func boradcastToMatch(matchId string, chat PlayerChat){
 	matchConnMutex.Lock()
 	defer matchConnMutex.Unlock()
 
 	for _, conn := range matchConnections[matchId] {
-		conn.WriteMessage(websocket.TextMessage, message)
+		conn.WriteMessage(websocket.TextMessage, []byte(chat.Message))
 	}
 }
 
@@ -96,6 +98,7 @@ type PlayerMove struct{
 
 type PlayerChat struct{
 	Type string `json:"type"`
+	From string `json:"from"`
 	Message string	`json:"message"`
 }
 
@@ -126,8 +129,19 @@ func handlePlayerInput(matchId, playerId string, input []byte){
 
 
 func handleMove(matchId, playerId string, input []byte){
-	log.Println("handeling move")
+	var move PlayerMove
+	if err := json.Unmarshal(input, &move); err != nil{
+		log.Printf("Invalid move message from %s: %s", playerId, string(input))
+		return 
+	}
+	snakeService.ExecuteMovement(matchId, playerId, move.Direction)
 }
 func handleChat(matchId, playerId string, input []byte){
-	log.Println("handling chat")
+	var chat PlayerChat
+	if err := json.Unmarshal(input, &chat); err != nil{
+		log.Printf("invalid chat message from %s: %s", playerId, string(input))
+		return
+	}
+
+	boradcastToMatch(matchId, chat)
 }

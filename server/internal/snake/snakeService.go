@@ -11,7 +11,7 @@ const(
 )
 
 type SnakeService struct{
-	SnakeBoard []SnakeBoard
+	SnakeBoards map[string]*SnakeBoard // matchId -> snakeboard
 }
 
 
@@ -26,14 +26,13 @@ type SnakeGameMetaDataResponse struct {
 func NewSnakeService() *SnakeService{
 	// comsume full space for the game thats bad 
 	return &SnakeService{
-		SnakeBoard: make([]SnakeBoard, MAX_RUNNING_SNAKE_GAMES),
+		SnakeBoards :make(map[string]*SnakeBoard),
 	}
 }
 
 
 
 func(ss * SnakeService) SnakeGameMetaData() *SnakeGameMetaDataResponse {
-	
 	return &SnakeGameMetaDataResponse{
 		BoardWidth:  BOARD_WIDTH,
 		BoardHeight: BOARD_HEIGHT,
@@ -45,9 +44,25 @@ func (ss *SnakeService) StartGame(gameEnv service.GameEnv ){
 	
 }
 
-func (ss *SnakeService) ExecuteMovement(direction Direction){
+func (ss *SnakeService) ExecuteMovement(matchId, playerId string, direction Direction){
 	// ss.SnakeBoard
+	snakeBoard := ss.SnakeBoards[matchId]
+	snakeBoard.ExecutePlayerMovement(playerId, direction)
 }
+
+func(ss *SnakeService) GenerateFood(matchId string){
+	if sb, ok := ss.SnakeBoards[matchId]; ok{
+		sb.GenerateFood()
+	}
+}
+
+func(ss *SnakeService)GetBoardStats(matchId, playerId string) SnakeBoardPlayerInformation{
+	if sb, ok := ss.SnakeBoards[matchId]; ok{
+		return sb.GetSnakeBoard(playerId)
+	}
+	return SnakeBoardPlayerInformation{}
+}
+
 
 func (ss *SnakeService) EndGame(){
 	
