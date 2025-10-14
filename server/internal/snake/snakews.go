@@ -1,6 +1,7 @@
 package snake
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -49,7 +50,7 @@ func WsHandler(c *gin.Context) {
 		// 	log.Println("Error writing message:", err)
 		// 	break
 		// }
-		handlePlayerInput(matchId, playerId, string(message))
+		handlePlayerInput(matchId, playerId, message)
 	}
 }
 
@@ -84,10 +85,49 @@ func boradcastToMatch(matchId string, message []byte){
 	}
 }
 
-func handlePlayerInput(matchId, playerId, input string){
+type PlayerMessage struct{
+	Type string `json:"type"`
+}
 
-	log.Println(matchId, playerId, input)
+type PlayerMove struct{
+	Type string `json:"type"`
+	Direction Direction `json:"direction"`
+}
 
-	newState := []byte(`{"type":"update","matchId":"` + matchId + `"}`)
-	boradcastToMatch(matchId, newState)
+type PlayerChat struct{
+	Type string `json:"type"`
+	Message string	`json:"message"`
+}
+
+
+
+func handlePlayerInput(matchId, playerId string, input []byte){
+	var msg PlayerMessage 
+	if err := json.Unmarshal(input, &msg); err != nil{
+		log.Printf("Invalid json from %s: %s", playerId, input)
+	}
+
+	switch msg.Type {
+	case "move":
+		handleMove(matchId, playerId, input)
+	case "chat":
+		handleChat(matchId, playerId, input)
+	default:
+		log.Printf("Unknown message type from %s: %s", playerId, msg)
+	}
+	
+
+
+	// log.Println(matchId, playerId, input)
+
+	// newState := []byte(`{"type":"update","matchId":"` + matchId + `"}`)
+	// boradcastToMatch(matchId, newState)
+}
+
+
+func handleMove(matchId, playerId string, input []byte){
+	log.Println("handeling move")
+}
+func handleChat(matchId, playerId string, input []byte){
+	log.Println("handling chat")
 }

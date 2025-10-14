@@ -47,24 +47,24 @@ func NewSnake() *Snake {
 }
 
 // snake direction controller
-func (s *Snake) Controller(c ControllerOption) SnakeControllerResponse {
+func (s *Snake) Controller(c Direction) SnakeControllerResponse {
 	switch c {
-	case UP_CONTROLLER:
+	case UP:
 		if s.Direction == LEFT || s.Direction == RIGHT {
 			s.Direction = UP
 			return SnakeControllerResponse{true, "Direction changed to UP"}
 		}
-	case DOWN_CONTROLLER:
+	case DOWN:
 		if s.Direction == LEFT || s.Direction == RIGHT {
 			s.Direction = DOWN
 			return SnakeControllerResponse{true, "Direction changed to DOWN"}
 		}
-	case LEFT_CONTROLLER:
+	case LEFT:
 		if s.Direction == UP || s.Direction == DOWN {
 			s.Direction = LEFT
 			return SnakeControllerResponse{true, "Direction changed to LEFT"}
 		}
-	case RIGHT_CONTROLLER:
+	case RIGHT:
 		if s.Direction == UP || s.Direction == DOWN {
 			s.Direction = RIGHT
 			return SnakeControllerResponse{true, "Direction changed to RIGHT"}

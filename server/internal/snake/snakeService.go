@@ -44,3 +44,11 @@ func(ss * SnakeService) SnakeGameMetaData() *SnakeGameMetaDataResponse {
 func (ss *SnakeService) StartGame(gameEnv service.GameEnv ){
 	
 }
+
+func (ss *SnakeService) ExecuteMovement(direction Direction){
+	// ss.SnakeBoard
+}
+
+func (ss *SnakeService) EndGame(){
+	
+}

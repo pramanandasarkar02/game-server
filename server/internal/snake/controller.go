@@ -8,7 +8,7 @@ type SnakeController struct {
 	Player *service.Player 
 }
 
-type ControllerOption string
+
 
 
 type SnakeControllerResponse struct {
@@ -17,13 +17,6 @@ type SnakeControllerResponse struct {
 }
 
 
-const (
-	LEFT_CONTROLLER ControllerOption = "left"
-	RIGHT_CONTROLLER ControllerOption = "right"
-	UP_CONTROLLER ControllerOption = "top"
-	DOWN_CONTROLLER ControllerOption = "down"
-
-)
 
 func(sc *SnakeController) NewSnakeController(snake *Snake, player *service.Player) *SnakeController {
 	return &SnakeController{
@@ -32,7 +25,7 @@ func(sc *SnakeController) NewSnakeController(snake *Snake, player *service.Playe
 	}
 }
 
-func (sc *SnakeController)KeyboardController(option ControllerOption)( error){
+func (sc *SnakeController)KeyboardController(option Direction)( error){
 	sc.Snake.Controller(option)
 	return nil
 }
