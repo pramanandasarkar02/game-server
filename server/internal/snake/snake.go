@@ -7,13 +7,13 @@ import (
 
 // Point represents a position on the grid
 type Point struct {
-	X int
-	Y int
+	X int	`json:"x"`
+	Y int	`json:"y"`
 }
 
 // Score holds the current score of the snake
 type Score struct {
-	Value int
+	Value int 	`json:"value"`
 }
 
 // Direction type for snake movement
@@ -28,11 +28,11 @@ const (
 
 // Snake represents the snake entity
 type Snake struct {
-	SnakeHead    Point
-	SnakeBody    []Point
-	Direction    Direction
-	Score        Score
-	StartingTime time.Time
+	SnakeHead    Point 	`json:"snakeHead"`
+	SnakeBody    []Point `json:"snakeBody"`
+	Direction    Direction	`json:"direction"`
+	Score        Score		`json:"score"`
+	StartingTime time.Time	`json:"time"`
 }
 
 // NewSnake initializes and returns a new Snake instance
@@ -91,7 +91,7 @@ func exeucteDirMovement(head Point, dir Direction) Point {
 
 func checkFood(foods []Food, head Point) (bool, Food) {
 	for _, food := range foods {
-		if food.Position.X == head.X && food.Position.X == head.Y {
+		if food.Position.X == head.X && food.Position.Y == head.Y {
 			return true, food
 		}
 	}

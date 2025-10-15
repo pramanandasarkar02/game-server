@@ -1,6 +1,8 @@
 package snake
 
-import "math/rand/v2"
+import (
+	"math/rand/v2"
+)
 
 type Food struct{
 	Position Point 		`json:"position"`
@@ -23,8 +25,8 @@ type SnakeBoard struct{
 }
 
 type SnakeBoardPlayerInformation struct{
-	PlayerSnake Snake 	`json:"playerSnake"`
 	PlayerId string		`json:"playerId"`
+	PlayerSnake Snake 	`json:"playerSnake"`
 	Foods []Food		`json:"foods"`
 	OtherSnakes []Snake	`json:"otherSnakes"`
 	Obstacles []Obstacle `json:"obstacles"`
@@ -32,10 +34,20 @@ type SnakeBoardPlayerInformation struct{
 
 
 
-func NewSnakeBoard() *SnakeBoard{
+func NewSnakeBoard(players []string) *SnakeBoard{
+	snakeControllers := make(map[string]*SnakeController, 0)
+	for _, pId := range players{
+		snakeControllers[pId] = NewSnakeController(NewSnake())
+	}
+
 	return &SnakeBoard{
-		SnakeControllers: make(map[string]*SnakeController),
+		SnakeControllers: snakeControllers,
 		Foods: make([]Food, 0),
+		Obstacles: make([]Obstacle, 0),
+		Width: 60,
+		Height: 40,
+		minimumFood: 4,
+		numberOfFoodRange: 3,
 	}
 }
 
@@ -92,12 +104,11 @@ func (sb *SnakeBoard)ExecutePlayerMovement(playerId string, direction Direction)
 	}
 }
 
-func (sb * SnakeBoard)GetSnakeBoard(playerId string) SnakeBoardPlayerInformation{
+func (sb * SnakeBoard)GetSnakeBoard(playerId string) *SnakeBoardPlayerInformation{
 	snakeController := sb.SnakeControllers[playerId]
 	playerSnake := snakeController.Snake
 	foods := sb.Foods
 	obstacles := sb.Obstacles
-
 	otherSnakes := make([]Snake, 0)
 	for pId, sc := range(sb.SnakeControllers){
 		if pId != playerId {
@@ -105,7 +116,7 @@ func (sb * SnakeBoard)GetSnakeBoard(playerId string) SnakeBoardPlayerInformation
 		} 
 	}
 
-	snakeBoardPlayerInformation := SnakeBoardPlayerInformation{
+	return &SnakeBoardPlayerInformation{
 		PlayerId: playerId,
 		PlayerSnake: *playerSnake,
 		Foods: foods,
@@ -113,7 +124,7 @@ func (sb * SnakeBoard)GetSnakeBoard(playerId string) SnakeBoardPlayerInformation
 		OtherSnakes: otherSnakes,
 		
 	}
-	return snakeBoardPlayerInformation
+	
 
 
 }

@@ -41,6 +41,13 @@ func(ss * SnakeService) SnakeGameMetaData() *SnakeGameMetaDataResponse {
 }
 
 func (ss *SnakeService) StartGame(gameEnv service.GameEnv ){
+	matchId := gameEnv.MatchId
+	players := gameEnv.Players
+
+	if _, ok := ss.SnakeBoards[matchId]; ok{
+		return 
+	}
+	ss.SnakeBoards[matchId] = NewSnakeBoard(players)
 	
 }
 
@@ -56,11 +63,11 @@ func(ss *SnakeService) GenerateFood(matchId string){
 	}
 }
 
-func(ss *SnakeService)GetBoardStats(matchId, playerId string) SnakeBoardPlayerInformation{
+func(ss *SnakeService)GetBoardStats(matchId, playerId string) *SnakeBoardPlayerInformation{
 	if sb, ok := ss.SnakeBoards[matchId]; ok{
 		return sb.GetSnakeBoard(playerId)
 	}
-	return SnakeBoardPlayerInformation{}
+	return &SnakeBoardPlayerInformation{}
 }
 
 

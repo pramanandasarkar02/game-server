@@ -2,6 +2,8 @@ package snake
 
 import (
 	"encoding/json"
+	"fmt"
+	"game-server/internal/service"
 	"log"
 	"net/http"
 	"sync"
@@ -34,6 +36,7 @@ func WsHandler(c *gin.Context) {
 
 	matchId := c.Query("matchId")
 	playerId := c.Query("playerId")
+	gameEnvStr := c.Handler("gameEnv")
 
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -45,6 +48,8 @@ func WsHandler(c *gin.Context) {
 	registerConnection(matchId, playerId, conn)
 	defer unregisterConnection(matchId, playerId)
 	log.Printf("Player %s connected to match %s", playerId, matchId)
+
+	startMatchLoopOnce(gameEnv)
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -160,13 +165,15 @@ func handleChat(matchId, playerId string, input []byte){
 	broadcastChatToMatch(matchId, chat)
 }
 
-func startMatchLoopOnce(matchId string){
+func startMatchLoopOnce(gameEnv service.GameEnv){
+	matchId := gameEnv.MatchId
 	activeMatchLock.Lock()
 	defer activeMatchLock.Unlock()
 
 	if activeMatches[matchId]{
 		return 
 	}
+	snakeService.StartGame(gameEnv)
 
 	activeMatches[matchId] = true
 	go func() {
@@ -177,8 +184,8 @@ func startMatchLoopOnce(matchId string){
 			log.Printf("Match loop ended for %s", matchId)
 		}()
 		log.Printf("Starting match loop for %s", matchId)
-		ticker100ms := time.NewTicker(100 * time.Microsecond)
-		ticker1s := time.NewTicker(1 * time.Second)
+		ticker100ms := time.NewTicker(1000 * time.Millisecond)
+		ticker1s := time.NewTicker(10 * time.Second)
 
 		defer ticker100ms.Stop()
 		defer ticker1s.Stop()
@@ -213,6 +220,7 @@ func broadcastBoardState(matchId string){
 	matchConnMutex.Unlock()
 	for _, playerId := range playerIds {
 		boardState := snakeService.GetBoardStats(matchId, playerId)
+		fmt.Printf("Board State: match(%v)-player(%v)\n%v\n", matchId, playerId, boardState)
 		stateJSON, err := json.Marshal(boardState)
 		if err != nil{
 			log.Println("Error Marshalling board state: ", err)
