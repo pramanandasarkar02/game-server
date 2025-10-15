@@ -1,6 +1,5 @@
 package snake
 
-import "game-server/internal/service"
 
 
 const(
@@ -40,15 +39,17 @@ func(ss * SnakeService) SnakeGameMetaData() *SnakeGameMetaDataResponse {
 	}
 }
 
-func (ss *SnakeService) StartGame(gameEnv service.GameEnv ){
-	matchId := gameEnv.MatchId
-	players := gameEnv.Players
-
+func (ss *SnakeService) StartGame(matchId string ){
+	
 	if _, ok := ss.SnakeBoards[matchId]; ok{
 		return 
 	}
-	ss.SnakeBoards[matchId] = NewSnakeBoard(players)
+	ss.SnakeBoards[matchId] = NewSnakeBoard()
 	
+}
+
+func(ss* SnakeService) AddPlayer(matchId, playerId string){
+	ss.SnakeBoards[matchId].AddPlayer(playerId)
 }
 
 func (ss *SnakeService) ExecuteMovement(matchId, playerId string, direction Direction){
@@ -70,6 +71,12 @@ func(ss *SnakeService)GetBoardStats(matchId, playerId string) *SnakeBoardPlayerI
 	return &SnakeBoardPlayerInformation{}
 }
 
+
+func(ss *SnakeService)RunSnake(matchId, playerId string){
+	if sb, ok := ss.SnakeBoards[matchId]; ok {
+		sb.RunSnake(playerId)
+	}
+}
 
 func (ss *SnakeService) EndGame(){
 	

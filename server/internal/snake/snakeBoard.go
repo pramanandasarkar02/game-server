@@ -15,7 +15,7 @@ type Obstacle struct{
 
 
 type SnakeBoard struct{
-	SnakeControllers map[string]*SnakeController
+	SnakeControllers map[string]*SnakeController  // playerId -> snakecontroller
 	Foods []Food
 	Width int 
 	Height int
@@ -34,12 +34,8 @@ type SnakeBoardPlayerInformation struct{
 
 
 
-func NewSnakeBoard(players []string) *SnakeBoard{
+func NewSnakeBoard() *SnakeBoard{
 	snakeControllers := make(map[string]*SnakeController, 0)
-	for _, pId := range players{
-		snakeControllers[pId] = NewSnakeController(NewSnake())
-	}
-
 	return &SnakeBoard{
 		SnakeControllers: snakeControllers,
 		Foods: make([]Food, 0),
@@ -49,6 +45,10 @@ func NewSnakeBoard(players []string) *SnakeBoard{
 		minimumFood: 4,
 		numberOfFoodRange: 3,
 	}
+}
+
+func(sb * SnakeBoard)AddPlayer(playerId string){
+	sb.SnakeControllers[playerId] = NewSnakeController(NewSnake())
 }
 
 func (sb *SnakeBoard)GenerateFood(){
@@ -102,6 +102,11 @@ func (sb *SnakeBoard)ExecutePlayerMovement(playerId string, direction Direction)
 	if sc, ok := sb.SnakeControllers[playerId]; ok {
 		sc.KeyboardController(direction)
 	}
+}
+
+
+func (sb *SnakeBoard)RunSnake(playerId string){
+	sb.SnakeControllers[playerId].RunSnake(sb)
 }
 
 func (sb * SnakeBoard)GetSnakeBoard(playerId string) *SnakeBoardPlayerInformation{

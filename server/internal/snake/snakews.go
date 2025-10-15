@@ -3,7 +3,6 @@ package snake
 import (
 	"encoding/json"
 	"fmt"
-	"game-server/internal/service"
 	"log"
 	"net/http"
 	"sync"
@@ -33,18 +32,9 @@ var (
 
 
 func WsHandler(c *gin.Context) {
-	
-	gameEnvStr := c.Query("gameEnv")
-	var gameEnv service.GameEnv
-	if gameEnvStr != "" {
-		if err := json.Unmarshal([]byte(gameEnvStr), &gameEnv); err != nil{
-			log.Println("Invalid gameEnv JSON:", err)
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "gameEnv not found"})
-		}
-	}
 	playerId := c.Query("playerId")
-	matchId := gameEnv.MatchId
+	matchId := c.Query("matchId")
+	
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Println("Upgrading error:", err)
@@ -56,8 +46,7 @@ func WsHandler(c *gin.Context) {
 	defer unregisterConnection(matchId, playerId)
 	log.Printf("Player %s connected to match %s", playerId, matchId)
 
-	startMatchLoopOnce(gameEnv)
-	setUpEnvironment := false
+	startMatchLoopOnce(matchId, playerId)
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -65,9 +54,6 @@ func WsHandler(c *gin.Context) {
 			break
 		}
 
-		if !setUpEnvironment {
-			// first wait for first gameEnv 
-		}
 
 		// log.Printf("Received: %s\n", message)
 
@@ -177,15 +163,16 @@ func handleChat(matchId, playerId string, input []byte){
 	broadcastChatToMatch(matchId, chat)
 }
 
-func startMatchLoopOnce(gameEnv service.GameEnv){
-	matchId := gameEnv.MatchId
+func startMatchLoopOnce(matchId, playerId string){
 	activeMatchLock.Lock()
 	defer activeMatchLock.Unlock()
 
 	if activeMatches[matchId]{
+		snakeService.AddPlayer(matchId, playerId)
 		return 
 	}
-	snakeService.StartGame(gameEnv)
+	snakeService.StartGame(matchId)
+	snakeService.AddPlayer(matchId, playerId)
 
 	activeMatches[matchId] = true
 	go func() {
@@ -197,10 +184,12 @@ func startMatchLoopOnce(gameEnv service.GameEnv){
 		}()
 		log.Printf("Starting match loop for %s", matchId)
 		ticker100ms := time.NewTicker(1000 * time.Millisecond)
+		ticker500ms := time.NewTicker(2000 * time.Millisecond)
 		ticker1s := time.NewTicker(10 * time.Second)
 
 		defer ticker100ms.Stop()
 		defer ticker1s.Stop()
+		defer ticker500ms.Stop()
 
 		for {
 			select {
@@ -208,6 +197,8 @@ func startMatchLoopOnce(gameEnv service.GameEnv){
 				broadcastBoardState(matchId)
 			case <- ticker1s.C:
 				snakeService.GenerateFood(matchId)
+			case <- ticker500ms.C:
+				snakeService.RunSnake(matchId, playerId)
 			}
 
 			matchConnMutex.Lock()

@@ -98,7 +98,7 @@ func checkFood(foods []Food, head Point) (bool, Food) {
 	return false, Food{}
 }
 
-func checkCollision(head Point, snakeBody []Point, gameBoard SnakeBoard)(bool, string) {
+func checkCollision(head Point, snakeBody []Point, gameBoard *SnakeBoard)(bool, string) {
 	// board reange
 	if (head.X < 0 || head.X >= gameBoard.Width) || (head.Y < 0 || head.Y >= gameBoard.Height) {
 		return true, "Out of range"
@@ -133,7 +133,7 @@ func executeMovement(newHead Point, snake *Snake, isFood bool){
 }
 
 // One tick time one execution
-func (s *Snake) Movement(gameBoard SnakeBoard) {
+func (s *Snake) Movement(gameBoard *SnakeBoard) {
 	newHeadPosition := exeucteDirMovement(s.SnakeHead, s.Direction)
 
 	if isCollision, msg := checkCollision(newHeadPosition, s.SnakeBody, gameBoard); isCollision {
