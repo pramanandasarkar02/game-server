@@ -33,11 +33,18 @@ var (
 
 
 func WsHandler(c *gin.Context) {
-
-	matchId := c.Query("matchId")
+	
+	gameEnvStr := c.Query("gameEnv")
+	var gameEnv service.GameEnv
+	if gameEnvStr != "" {
+		if err := json.Unmarshal([]byte(gameEnvStr), &gameEnv); err != nil{
+			log.Println("Invalid gameEnv JSON:", err)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "gameEnv not found"})
+		}
+	}
 	playerId := c.Query("playerId")
-	gameEnvStr := c.Handler("gameEnv")
-
+	matchId := gameEnv.MatchId
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Println("Upgrading error:", err)
@@ -50,11 +57,16 @@ func WsHandler(c *gin.Context) {
 	log.Printf("Player %s connected to match %s", playerId, matchId)
 
 	startMatchLoopOnce(gameEnv)
+	setUpEnvironment := false
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("Error reading message:", err)
 			break
+		}
+
+		if !setUpEnvironment {
+			// first wait for first gameEnv 
 		}
 
 		// log.Printf("Received: %s\n", message)
