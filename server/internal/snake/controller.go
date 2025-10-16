@@ -22,8 +22,9 @@ func NewSnakeController(snake *Snake) *SnakeController {
 		Snake: snake,
 	}
 }
-func (sc* SnakeController)RunSnake(snakeBoard *SnakeBoard){
-	sc.Snake.Movement(snakeBoard)
+func (sc* SnakeController)RunSnake(snakeBoard *SnakeBoard)(bool, string){
+	isCol, msg := sc.Snake.Movement(snakeBoard)
+	return isCol, msg
 }
 
 func (sc *SnakeController)KeyboardController(option Direction)( error){

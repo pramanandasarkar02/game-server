@@ -25,6 +25,7 @@ var (
 	activeMatches = make(map[string]bool)
 	activeMatchLock sync.Mutex
 	snakeService = NewSnakeService()
+	deadSnake = make([]string, 0)
 )
 
 
@@ -198,7 +199,16 @@ func startMatchLoopOnce(matchId, playerId string){
 			case <- ticker1s.C:
 				snakeService.GenerateFood(matchId)
 			case <- ticker500ms.C:
-				snakeService.RunSnake(matchId, playerId)
+				for _, id := range deadSnake {
+					if id == playerId {
+						continue
+					}
+				}
+				isCol, msg := snakeService.RunSnake(matchId, playerId)
+				if isCol{
+					log.Printf("player %v done by %v", playerId, msg)
+					deadSnake = append(deadSnake, playerId)
+				}
 			}
 
 			matchConnMutex.Lock()

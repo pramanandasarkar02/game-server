@@ -133,11 +133,12 @@ func executeMovement(newHead Point, snake *Snake, isFood bool){
 }
 
 // One tick time one execution
-func (s *Snake) Movement(gameBoard *SnakeBoard) {
+func (s *Snake) Movement(gameBoard *SnakeBoard) (bool, string) {
 	newHeadPosition := exeucteDirMovement(s.SnakeHead, s.Direction)
 
 	if isCollision, msg := checkCollision(newHeadPosition, s.SnakeBody, gameBoard); isCollision {
-		log.Panicf("there is a collision %s", msg)
+		log.Printf("there is a collision %s", msg)
+		return true, msg
 	}
 
 	if isFood, food := checkFood(gameBoard.Foods, newHeadPosition); isFood {
@@ -146,4 +147,5 @@ func (s *Snake) Movement(gameBoard *SnakeBoard) {
 	}
 
 	executeMovement(newHeadPosition, s, false)
+	return false, ""
 }

@@ -105,8 +105,9 @@ func (sb *SnakeBoard)ExecutePlayerMovement(playerId string, direction Direction)
 }
 
 
-func (sb *SnakeBoard)RunSnake(playerId string){
-	sb.SnakeControllers[playerId].RunSnake(sb)
+func (sb *SnakeBoard)RunSnake(playerId string)(bool, string){
+	isCol, msg := sb.SnakeControllers[playerId].RunSnake(sb)
+	return isCol, msg
 }
 
 func (sb * SnakeBoard)GetSnakeBoard(playerId string) *SnakeBoardPlayerInformation{

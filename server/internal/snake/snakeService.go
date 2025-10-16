@@ -72,10 +72,11 @@ func(ss *SnakeService)GetBoardStats(matchId, playerId string) *SnakeBoardPlayerI
 }
 
 
-func(ss *SnakeService)RunSnake(matchId, playerId string){
+func(ss *SnakeService)RunSnake(matchId, playerId string)(bool, string){
 	if sb, ok := ss.SnakeBoards[matchId]; ok {
-		sb.RunSnake(playerId)
+		return sb.RunSnake(playerId)
 	}
+	return true, ""
 }
 
 func (ss *SnakeService) EndGame(){
