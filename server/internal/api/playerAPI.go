@@ -18,4 +18,5 @@ func PlayerRegisterRoutes(router *gin.Engine) {
 	router.POST("/api/login", playerHandler.Login)
 	router.POST("/api/logout", playerHandler.Logout)
 	router.POST("/api/signup", playerHandler.SignUp)
+	
 }

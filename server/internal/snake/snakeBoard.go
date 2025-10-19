@@ -13,6 +13,43 @@ type Obstacle struct{
 	Object []Point 		`json:"object"`
 }
 
+func CreateNewRandomObstacle(width, height int)Obstacle{
+	startingPoint := Point{
+		X: rand.IntN(width),
+		Y: rand.IntN(height),
+	}
+
+	length := 3 + rand.IntN(4)
+
+	object := make([]Point, 0, length)
+	object = append(object, startingPoint)
+
+	for i := 1; i< length; {
+		dir := rand.IntN(4)
+		newPoint := startingPoint
+		switch dir{
+		case 0:
+			newPoint.X += 1
+		case 1:
+			newPoint.X -= 1
+		case 2:
+			newPoint.Y += 1
+		case 3:
+			newPoint.Y -= 1
+		}
+		
+		if newPoint.X >= 0 && newPoint.X < width && newPoint.Y >= 0 && newPoint.Y <height {
+			i += 1
+			object = append(object, newPoint)
+		}
+
+	}
+	return Obstacle{
+		Object: object,
+	}
+
+}
+
 
 type SnakeBoard struct{
 	SnakeControllers map[string]*SnakeController  // playerId -> snakecontroller
@@ -21,7 +58,9 @@ type SnakeBoard struct{
 	Height int
 	minimumFood int 
 	numberOfFoodRange int 
+	obstacleCount int
 	Obstacles []Obstacle
+	
 }
 
 type SnakeBoardPlayerInformation struct{
@@ -32,19 +71,24 @@ type SnakeBoardPlayerInformation struct{
 	Obstacles []Obstacle `json:"obstacles"`
 }
 
-
-
 func NewSnakeBoard() *SnakeBoard{
 	snakeControllers := make(map[string]*SnakeController, 0)
-	return &SnakeBoard{
+	height := 40
+	width := 60
+
+	obsCount, obstacles := createObstacles(width, height)
+	snakeBoard := &SnakeBoard{
 		SnakeControllers: snakeControllers,
 		Foods: make([]Food, 0),
-		Obstacles: make([]Obstacle, 0),
-		Width: 60,
-		Height: 40,
+		Obstacles: obstacles,
+		Width: width,
+		Height: height,
 		minimumFood: 4,
 		numberOfFoodRange: 3,
+		obstacleCount: obsCount,
 	}
+	snakeBoard.GenerateFood()
+	return snakeBoard
 }
 
 func(sb * SnakeBoard)AddPlayer(playerId string){
@@ -127,10 +171,22 @@ func (sb * SnakeBoard)GetSnakeBoard(playerId string) *SnakeBoardPlayerInformatio
 		PlayerSnake: *playerSnake,
 		Foods: foods,
 		Obstacles: obstacles,
-		OtherSnakes: otherSnakes,
-		
+		OtherSnakes: otherSnakes,	
 	}
 	
+}
 
+func createObstacles(w, h int) (int, []Obstacle) {
+	minimumObstacles := 2
+	numberOfObstacleRange := 3
+
+	obstacleCount := minimumObstacles + rand.IntN(numberOfObstacleRange);
+
+	obstacles := make([]Obstacle, 0)
+	for i := 0; i < obstacleCount; i++{
+		obstacles = append(obstacles, CreateNewRandomObstacle(w, h))
+	}
+
+	return obstacleCount, obstacles
 
 }
