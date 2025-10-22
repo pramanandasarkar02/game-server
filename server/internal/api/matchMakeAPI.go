@@ -12,4 +12,4 @@ func MatchMakeRoutes(router * gin.Engine){
 	router.POST("/api/match-make/:playerId/:gameId", matchMakeHandler.AddQueue)
 	router.PATCH("/api/match-make/:playerId", matchMakeHandler.RemoveQueue)
 	router.GET("/api/match-make/:playerId", matchMakeHandler.GetMatch)
-}
+};
