@@ -18,24 +18,19 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-
 var (
 	matchConnections = make(map[string]map[string]*websocket.Conn)
-	matchConnMutex sync.Mutex
-	activeMatches = make(map[string]bool)
-	activeMatchLock sync.Mutex
-	snakeService = NewSnakeService()
-	deadSnake = make([]string, 0)
+	matchConnMutex   sync.Mutex
+	activeMatches    = make(map[string]bool)
+	activeMatchLock  sync.Mutex
+	snakeService     = NewSnakeService()
+	deadSnake        = make([]string, 0)
 )
-
-
-
-
 
 func WsHandler(c *gin.Context) {
 	playerId := c.Query("playerId")
 	matchId := c.Query("matchId")
-	
+
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Println("Upgrading error:", err)
@@ -55,7 +50,6 @@ func WsHandler(c *gin.Context) {
 			break
 		}
 
-
 		// log.Printf("Received: %s\n", message)
 
 		// if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
@@ -66,12 +60,11 @@ func WsHandler(c *gin.Context) {
 	}
 }
 
-
-func registerConnection(matchId, playerId string, conn * websocket.Conn){
+func registerConnection(matchId, playerId string, conn *websocket.Conn) {
 	matchConnMutex.Lock()
 	defer matchConnMutex.Unlock()
 
-	if matchConnections[matchId] == nil{
+	if matchConnections[matchId] == nil {
 		matchConnections[matchId] = make(map[string]*websocket.Conn)
 	}
 
@@ -82,21 +75,29 @@ func unregisterConnection(matchId, playerId string) {
 	matchConnMutex.Lock()
 	defer matchConnMutex.Unlock()
 
-	if matchConnections[matchId] != nil{
+	if matchConnections[matchId] != nil {
 		delete(matchConnections[matchId], playerId)
 	}
 }
 
-
-func broadcastChatToMatch(matchId string, chat PlayerChat){
+func broadcastChatToMatch(matchId string, chat PlayerChat) {
 	matchConnMutex.Lock()
-	defer matchConnMutex.Unlock()
+	conns := matchConnections[matchId]
+	matchConnMutex.Unlock()
 
-	for _, conn := range matchConnections[matchId] {
-		conn.WriteMessage(websocket.TextMessage, []byte(chat.Message))
+	msg, err := json.Marshal(chat)
+	if err != nil {
+		log.Println("Error marshalling chat:", err)
+		return
+	}
+
+	for playerId, conn := range conns {
+		if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+			log.Printf("Error sending chat to %s: %v", playerId, err)
+		}
 	}
 }
-func broadcastToMatch(matchId string, message []byte){
+func broadcastToMatch(matchId string, message []byte) {
 	matchConnMutex.Lock()
 	defer matchConnMutex.Unlock()
 
@@ -105,27 +106,26 @@ func broadcastToMatch(matchId string, message []byte){
 	}
 }
 
-type PlayerMessage struct{
+type PlayerMessage struct {
 	Type string `json:"type"`
 }
 
-type PlayerMove struct{
-	Type string `json:"type"`
+type PlayerMove struct {
+	Type      string    `json:"type"`
 	Direction Direction `json:"direction"`
 }
 
-type PlayerChat struct{
-	Type string `json:"type"`
-	From string `json:"from"`
-	Message string	`json:"message"`
+type PlayerChat struct {
+	Type    string `json:"type"`
+	From    string `json:"from"`
+	Message string `json:"message"`
 }
 
-
-
-func handlePlayerInput(matchId, playerId string, input []byte){
-	var msg PlayerMessage 
-	if err := json.Unmarshal(input, &msg); err != nil{
+func handlePlayerInput(matchId, playerId string, input []byte) {
+	var msg PlayerMessage
+	if err := json.Unmarshal(input, &msg); err != nil {
 		log.Printf("Invalid json from %s: %s", playerId, input)
+		return
 	}
 
 	switch msg.Type {
@@ -136,8 +136,6 @@ func handlePlayerInput(matchId, playerId string, input []byte){
 	default:
 		log.Printf("Unknown message type from %s: %s", playerId, msg)
 	}
-	
-
 
 	// log.Println(matchId, playerId, input)
 
@@ -145,39 +143,42 @@ func handlePlayerInput(matchId, playerId string, input []byte){
 	// boradcastToMatch(matchId, newState)
 }
 
-
-func handleMove(matchId, playerId string, input []byte){
+func handleMove(matchId, playerId string, input []byte) {
 	var move PlayerMove
-	if err := json.Unmarshal(input, &move); err != nil{
+	if err := json.Unmarshal(input, &move); err != nil {
 		log.Printf("Invalid move message from %s: %s", playerId, string(input))
-		return 
+		return
 	}
 	snakeService.ExecuteMovement(matchId, playerId, move.Direction)
 }
-func handleChat(matchId, playerId string, input []byte){
+func handleChat(matchId, playerId string, input []byte) {
 	var chat PlayerChat
-	if err := json.Unmarshal(input, &chat); err != nil{
+	if err := json.Unmarshal(input, &chat); err != nil {
 		log.Printf("invalid chat message from %s: %s", playerId, string(input))
 		return
 	}
 
+	// Ensure sender is set
+	chat.From = playerId
+	chat.Type = "chat"
+
 	broadcastChatToMatch(matchId, chat)
 }
 
-func startMatchLoopOnce(matchId, playerId string){
+func startMatchLoopOnce(matchId, playerId string) {
 	activeMatchLock.Lock()
 	defer activeMatchLock.Unlock()
 
-	if activeMatches[matchId]{
+	if activeMatches[matchId] {
 		snakeService.AddPlayer(matchId, playerId)
-		return 
+		return
 	}
 	snakeService.StartGame(matchId)
 	snakeService.AddPlayer(matchId, playerId)
 
 	activeMatches[matchId] = true
 	go func() {
-		defer func(){
+		defer func() {
 			activeMatchLock.Lock()
 			delete(activeMatches, matchId)
 			activeMatchLock.Unlock()
@@ -194,18 +195,18 @@ func startMatchLoopOnce(matchId, playerId string){
 
 		for {
 			select {
-			case <- ticker100ms.C:
+			case <-ticker100ms.C:
 				broadcastBoardState(matchId)
-			case <- ticker1s.C:
+			case <-ticker1s.C:
 				snakeService.GenerateFood(matchId)
-			case <- ticker500ms.C:
+			case <-ticker500ms.C:
 				for _, id := range deadSnake {
 					if id == playerId {
 						continue
 					}
 				}
 				isCol, msg := snakeService.RunSnake(matchId, playerId)
-				if isCol{
+				if isCol {
 					log.Printf("player %v done by %v", playerId, msg)
 					deadSnake = append(deadSnake, playerId)
 				}
@@ -215,31 +216,34 @@ func startMatchLoopOnce(matchId, playerId string){
 			activePlayers := len(matchConnections[matchId])
 			matchConnMutex.Unlock()
 
-			if activePlayers == 0{
+			if activePlayers == 0 {
 				log.Printf("No active player in match %s - stopping loop", matchId)
-				return 
+				return
 			}
 		}
 
 	}()
 }
 
-func broadcastBoardState(matchId string){
+func broadcastBoardState(matchId string) {
 	matchConnMutex.Lock()
 	playerIds := make([]string, 0, len(matchConnections[matchId]))
-	for pId := range matchConnections[matchId]{
+	for pId := range matchConnections[matchId] {
 		playerIds = append(playerIds, pId)
 	}
 	matchConnMutex.Unlock()
 	for _, playerId := range playerIds {
 		boardState := snakeService.GetBoardStats(matchId, playerId)
 		fmt.Printf("Board State: match(%v)-player(%v)\n%v\n", matchId, playerId, boardState)
-		stateJSON, err := json.Marshal(boardState)
-		if err != nil{
+		stateJSON, err := json.Marshal(map[string]interface{}{
+			"type":  "update",
+			"state": boardState,
+		})
+		if err != nil {
 			log.Println("Error Marshalling board state: ", err)
-			continue 
+			continue
 		}
 		broadcastToMatch(matchId, stateJSON)
-		
+
 	}
 }

@@ -77,9 +77,9 @@ func (s *Snake) Controller(c Direction) SnakeControllerResponse {
 func exeucteDirMovement(head Point, dir Direction) Point {
 	switch dir {
 	case LEFT:
-		head.X += 1
-	case RIGHT:
 		head.X -= 1
+	case RIGHT:
+		head.X += 1
 	case UP:
 		head.Y -= 1
 	case DOWN:
