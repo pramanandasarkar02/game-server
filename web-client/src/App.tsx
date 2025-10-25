@@ -9,28 +9,36 @@ import MatchMake from "./pages/MatchMake";
 import SnakeGame from "./pages/snakeGame/SnakeGame";
 
 function App() {
-  const { player } = useContext(PlayerContext);
+  const { player, loading } = useContext(PlayerContext);
+
+  // Show nothing or a loader while checking auth
+  if (loading) {
+    return <div>Loading...</div>; // Or a spinner
+  }
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Home: protected route */}
+        {/* Home: protected */}
         <Route path="/" element={player ? <Home /> : <Navigate to="/login" />} />
 
         {/* Auth routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={!player ? <Login /> : <Navigate to="/" />} />
+        <Route path="/signup" element={!player ? <Signup /> : <Navigate to="/" />} />
 
         {/* Matchmaking: protected */}
-        <Route path="/match-make" element={player ? <MatchMake /> : <Navigate to="/login" />} />
+        <Route
+          path="/match-make"
+          element={player ? <MatchMake /> : <Navigate to="/login" />}
+        />
 
-        {/* Snake game canvas route with params */}
+        {/* Snake game */}
         <Route
           path="/snake-game/game-canvas/:gameId/:playerId"
           element={player ? <SnakeGame /> : <Navigate to="/login" />}
         />
 
-        {/* Fallback route */}
+        {/* Fallback */}
         <Route path="*" element={<Navigate to={player ? "/" : "/login"} />} />
       </Routes>
     </BrowserRouter>

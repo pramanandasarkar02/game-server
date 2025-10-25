@@ -11,6 +11,7 @@ const(
 
 type SnakeService struct{
 	SnakeBoards map[string]*SnakeBoard // matchId -> snakeboard
+	MatchPlayers map[string][]string // matchId -> playerId
 }
 
 
@@ -26,6 +27,7 @@ func NewSnakeService() *SnakeService{
 	// comsume full space for the game thats bad 
 	return &SnakeService{
 		SnakeBoards :make(map[string]*SnakeBoard),
+		MatchPlayers: make(map[string][]string),
 	}
 }
 
@@ -39,12 +41,13 @@ func(ss * SnakeService) SnakeGameMetaData() *SnakeGameMetaDataResponse {
 	}
 }
 
-func (ss *SnakeService) StartGame(matchId string ){
+func (ss *SnakeService) StartGame(matchId string, playerIds []string ){
 	
 	if _, ok := ss.SnakeBoards[matchId]; ok{
 		return 
 	}
 	ss.SnakeBoards[matchId] = NewSnakeBoard()
+	ss.MatchPlayers[matchId] = playerIds
 	
 }
 
@@ -70,7 +73,9 @@ func(ss *SnakeService)GetBoardStats(matchId, playerId string) *SnakeBoardPlayerI
 	}
 	return &SnakeBoardPlayerInformation{}
 }
-
+func (ss *SnakeService)RunAllSnake(matchId string){
+	
+}
 
 func(ss *SnakeService)RunSnake(matchId, playerId string)(bool, string){
 	if sb, ok := ss.SnakeBoards[matchId]; ok {

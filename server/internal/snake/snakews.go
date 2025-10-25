@@ -1,10 +1,12 @@
 package snake
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -42,7 +44,21 @@ func WsHandler(c *gin.Context) {
 	defer unregisterConnection(matchId, playerId)
 	log.Printf("Player %s connected to match %s", playerId, matchId)
 
-	startMatchLoopOnce(matchId, playerId)
+	db, err := sql.Open("sqlite3", "./matches.db")
+	if err != nil {
+		log.Printf("DB open error: %v", err)
+		return
+	}
+	defer db.Close()
+
+	playerIds, err := getPlayersByMatchId(db, matchId)
+	if err != nil {
+		log.Printf("Failed to load playerIds for match %s: %v", matchId, err)
+		return
+	}
+
+
+	startMatchLoopOnce(matchId, playerIds)
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -112,7 +128,7 @@ type PlayerMessage struct {
 
 type PlayerMove struct {
 	Type      string    `json:"type"`
-	Direction Direction `json:"direction"`
+	Direction string `json:"direction"`
 }
 
 type PlayerChat struct {
@@ -149,7 +165,30 @@ func handleMove(matchId, playerId string, input []byte) {
 		log.Printf("Invalid move message from %s: %s", playerId, string(input))
 		return
 	}
-	snakeService.ExecuteMovement(matchId, playerId, move.Direction)
+	log.Println(move)
+	snakeService.ExecuteMovement(matchId, playerId, strToDirection(move.Direction))
+}
+
+func strToDirection(dir string) Direction{
+	switch dir {
+	case "right":
+		return RIGHT
+	case "left":
+		return LEFT
+	case "up":
+		return UP
+	case "down":
+		return DOWN
+	case "RIGHT":
+		return RIGHT
+	case "LEFT":
+		return LEFT
+	case "UP":
+		return UP
+	case "DOWN":
+		return DOWN
+	}
+	return ""
 }
 func handleChat(matchId, playerId string, input []byte) {
 	var chat PlayerChat
@@ -165,16 +204,13 @@ func handleChat(matchId, playerId string, input []byte) {
 	broadcastChatToMatch(matchId, chat)
 }
 
-func startMatchLoopOnce(matchId, playerId string) {
+func startMatchLoopOnce(matchId string, playerIds []string) {
 	activeMatchLock.Lock()
 	defer activeMatchLock.Unlock()
 
-	if activeMatches[matchId] {
-		snakeService.AddPlayer(matchId, playerId)
-		return
-	}
-	snakeService.StartGame(matchId)
-	snakeService.AddPlayer(matchId, playerId)
+	
+	snakeService.StartGame(matchId, playerIds)
+
 
 	activeMatches[matchId] = true
 	go func() {
@@ -185,9 +221,9 @@ func startMatchLoopOnce(matchId, playerId string) {
 			log.Printf("Match loop ended for %s", matchId)
 		}()
 		log.Printf("Starting match loop for %s", matchId)
-		ticker100ms := time.NewTicker(1000 * time.Millisecond)
-		ticker500ms := time.NewTicker(2000 * time.Millisecond)
-		ticker1s := time.NewTicker(10 * time.Second)
+		ticker100ms := time.NewTicker(100 * time.Millisecond)
+		ticker500ms := time.NewTicker(500 * time.Millisecond)
+		ticker1s := time.NewTicker(1 * time.Second)
 
 		defer ticker100ms.Stop()
 		defer ticker1s.Stop()
@@ -200,16 +236,7 @@ func startMatchLoopOnce(matchId, playerId string) {
 			case <-ticker1s.C:
 				snakeService.GenerateFood(matchId)
 			case <-ticker500ms.C:
-				for _, id := range deadSnake {
-					if id == playerId {
-						continue
-					}
-				}
-				isCol, msg := snakeService.RunSnake(matchId, playerId)
-				if isCol {
-					log.Printf("player %v done by %v", playerId, msg)
-					deadSnake = append(deadSnake, playerId)
-				}
+				snakeService.RunAllSnake(matchId)
 			}
 
 			matchConnMutex.Lock()
@@ -246,4 +273,19 @@ func broadcastBoardState(matchId string) {
 		broadcastToMatch(matchId, stateJSON)
 
 	}
+}
+func getPlayersByMatchId(db *sql.DB, matchId string) ([]string, error) {
+	row := db.QueryRow(`SELECT players FROM matches WHERE match_id = ?`, matchId)
+
+	var playerList string
+	if err := row.Scan(&playerList); err != nil {
+		return nil, fmt.Errorf("failed to query players for match %s: %v", matchId, err)
+	}
+
+	playerIds := strings.Split(playerList, ",")
+	for i := range playerIds {
+		playerIds[i] = strings.TrimSpace(playerIds[i])
+	}
+
+	return playerIds, nil
 }
