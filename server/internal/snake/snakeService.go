@@ -1,5 +1,6 @@
 package snake
 
+import "log"
 
 
 const(
@@ -73,16 +74,27 @@ func(ss *SnakeService)GetBoardStats(matchId, playerId string) *SnakeBoardPlayerI
 	}
 	return &SnakeBoardPlayerInformation{}
 }
-func (ss *SnakeService)RunAllSnake(matchId string){
-	
+func (ss *SnakeService) RunAllSnake(matchId string) {
+	sb, ok := ss.SnakeBoards[matchId]
+	if !ok {
+		log.Println("Match id not found")
+		return
+	}
+
+	players := ss.MatchPlayers[matchId]
+	for _, playerId := range players {
+		sb.RunSnake(playerId)
+	}
 }
 
-func(ss *SnakeService)RunSnake(matchId, playerId string)(bool, string){
-	if sb, ok := ss.SnakeBoards[matchId]; ok {
-		return sb.RunSnake(playerId)
+func (ss *SnakeService) RunSnake(matchId, playerId string) (bool, string) {
+	sb, ok := ss.SnakeBoards[matchId]
+	if !ok {
+		return false, "snake board not found"
 	}
-	return true, ""
+	return sb.RunSnake(playerId)
 }
+
 
 func (ss *SnakeService) EndGame(){
 	

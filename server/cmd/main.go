@@ -4,7 +4,6 @@ import (
 	"game-server/internal/api"
 	"log"
 	"net/http"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -12,15 +11,12 @@ import (
 func main() {
 	router := gin.Default()
 	PORT := ":8080"
-
 	router.Use(cors.Default())
 
 	// Register API routes
 	api.PlayerRegisterRoutes(router)
 	api.SnakeGameDataRoutes(router)
 	api.MatchMakeRoutes(router)
-
-	
 
 	// Echo Server endpoint
 	router.GET("/api", func(c *gin.Context) {

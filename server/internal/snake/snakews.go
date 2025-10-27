@@ -229,7 +229,7 @@ func startMatchLoopOnce(matchId string, playerIds []string) {
 		
 		log.Printf("Starting match loop for %s", matchId)
 		ticker100ms := time.NewTicker(100 * time.Millisecond)
-		ticker500ms := time.NewTicker(500 * time.Millisecond)
+		ticker500ms := time.NewTicker(3000 * time.Millisecond)
 		ticker1s := time.NewTicker(1 * time.Second)
 
 		defer ticker100ms.Stop()

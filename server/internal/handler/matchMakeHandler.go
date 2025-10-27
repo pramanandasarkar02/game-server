@@ -3,29 +3,30 @@ package handler
 import (
 	"fmt"
 	"game-server/internal/service"
-
+	"log"
 	"github.com/gin-gonic/gin"
 )
+
 type MatchMakeHandler struct{
 	matchMakeService *service.MatchMakeService
 }
 
-
-
+// Create new MatchMakeHandler
 func NewMatchMakeHandler() *MatchMakeHandler{
+	log.Println("Match-make service initiate")
 	return &MatchMakeHandler{
 		matchMakeService: service.NewMatchMakeService(),
 	}
 }
-
-
+// Add player to the qeueue
 func(mh *MatchMakeHandler)AddQueue(c *gin.Context){
 	playerId := c.Param("playerId")
 	gameId := c.Param("gameId")
-
+	log.Printf("Player %v request for match-make for game %v", playerId, gameId)
+	
 	err := mh.matchMakeService.AddQueue(playerId, gameId)
 	if err != nil{
-		c.JSON(200, gin.H{
+		c.JSON(500, gin.H{
 			"massage": "failed to add queue",
 			"err": err,
 		})
@@ -33,13 +34,13 @@ func(mh *MatchMakeHandler)AddQueue(c *gin.Context){
 	}
 
 	msg := fmt.Sprintf("%v add to the queue for the game %v", playerId, gameId)
+	log.Println(msg)
 	c.JSON(200, gin.H{
 		"message": msg,
-
 	})
 }
 
-
+// Remove Player from the queue
 func(mh *MatchMakeHandler)RemoveQueue(c *gin.Context){
 	playerId := c.Param("playerId")
 	err := mh.matchMakeService.RemoveQueue(playerId)
@@ -58,6 +59,7 @@ func(mh *MatchMakeHandler)RemoveQueue(c *gin.Context){
 	})
 }
 
+// Get Match Stats from the queue
 func (mh *MatchMakeHandler) GetMatch(c *gin.Context) {
 	playerId := c.Param("playerId")
 
