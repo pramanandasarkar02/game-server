@@ -53,11 +53,18 @@ const SnakeGame: React.FC = () => {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log("Received WebSocket message:", data);
 
         if (data.type === "chat") {
           setChatLog((prev) => [...prev, `${data.from}: ${data.message}`]);
         } else if (data.type === "update") {
-          setGameState(data.state ?? data); // handle if server wraps inside {type, state}
+          // Handle game state wrapped in {type: "update", state: {...}}
+          console.log("Setting game state from update:", data.state);
+          setGameState(data.state);
+        } else if (data.playerId) {
+          // Handle direct game state (no type wrapper)
+          console.log("Setting game state directly:", data);
+          setGameState(data);
         }
       } catch (err) {
         console.error("Invalid JSON:", event.data);
@@ -78,7 +85,7 @@ const SnakeGame: React.FC = () => {
 
     // Player snake
     const snake = gameState.playerSnake;
-    if (snake) {
+    if (snake && snake.snakeBody && snake.snakeHead) {
       ctx.fillStyle = "green";
       snake.snakeBody.forEach((part) =>
         ctx.fillRect(
@@ -98,45 +105,57 @@ const SnakeGame: React.FC = () => {
     }
 
     // Other snakes
-    ctx.fillStyle = "yellow";
-    gameState.otherSnakes?.forEach((other) => {
-      other.snake.snakeBody.forEach((part) =>
-        ctx.fillRect(
-          part.x * CELL_SIZE,
-          part.y * CELL_SIZE,
-          CELL_SIZE,
-          CELL_SIZE
-        )
-      );
-      ctx.fillRect(
-        other.snake.snakeHead.x * CELL_SIZE,
-        other.snake.snakeHead.y * CELL_SIZE,
-        CELL_SIZE,
-        CELL_SIZE
-      );
-    });
+    if (gameState.otherSnakes && gameState.otherSnakes.length > 0) {
+      ctx.fillStyle = "yellow";
+      gameState.otherSnakes.forEach((other) => {
+        if (other && other.snake && other.snake.snakeBody && other.snake.snakeHead) {
+          other.snake.snakeBody.forEach((part) =>
+            ctx.fillRect(
+              part.x * CELL_SIZE,
+              part.y * CELL_SIZE,
+              CELL_SIZE,
+              CELL_SIZE
+            )
+          );
+          ctx.fillRect(
+            other.snake.snakeHead.x * CELL_SIZE,
+            other.snake.snakeHead.y * CELL_SIZE,
+            CELL_SIZE,
+            CELL_SIZE
+          );
+        }
+      });
+    }
 
     // Foods
-    ctx.fillStyle = "red";
-    gameState.foods.forEach((food) => {
-      ctx.beginPath();
-      ctx.arc(
-        food.position.x * CELL_SIZE + CELL_SIZE / 2,
-        food.position.y * CELL_SIZE + CELL_SIZE / 2,
-        CELL_SIZE / 2,
-        0,
-        Math.PI * 2
-      );
-      ctx.fill();
-    });
+    if (gameState.foods && gameState.foods.length > 0) {
+      ctx.fillStyle = "red";
+      gameState.foods.forEach((food) => {
+        if (food && food.position) {
+          ctx.beginPath();
+          ctx.arc(
+            food.position.x * CELL_SIZE + CELL_SIZE / 2,
+            food.position.y * CELL_SIZE + CELL_SIZE / 2,
+            CELL_SIZE / 2,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+      });
+    }
 
     // Obstacles
-    ctx.fillStyle = "gray";
-    gameState.obstacles.forEach((obs) =>
-      obs.object?.forEach((p) =>
-        ctx.fillRect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-      )
-    );
+    if (gameState.obstacles && gameState.obstacles.length > 0) {
+      ctx.fillStyle = "gray";
+      gameState.obstacles.forEach((obs) => {
+        if (obs && obs.object && obs.object.length > 0) {
+          obs.object.forEach((p) =>
+            ctx.fillRect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+          );
+        }
+      });
+    }
   }, [gameState]);
 
   // send direction change
@@ -154,7 +173,9 @@ const SnakeGame: React.FC = () => {
       };
       const dir = keyMap[e.key];
       if (dir && wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: "move", direction: dir }));
+        const moveCommand = { type: "move", direction: dir };
+        console.log("Sending move command:", moveCommand);
+        wsRef.current.send(JSON.stringify(moveCommand));
       }
     };
     window.addEventListener("keydown", handleKey);
