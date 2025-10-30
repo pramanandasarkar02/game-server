@@ -3,7 +3,6 @@ package api
 import (
 	"game-server/internal/handler"
 	"game-server/internal/snake"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,6 +21,4 @@ func SnakeGameDataRoutes(router *gin.Engine) {
 	router.GET("/api/game/snake/meta-data/:playerId", snakeGameHandler.GameMetaData)
 	// main game logic end point 
 	router.GET("/ws", snake.WsHandler)
-
-	
 }

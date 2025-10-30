@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -25,8 +24,17 @@ var (
 	matchConnMutex   sync.RWMutex
 	activeMatches    = make(map[string]bool)
 	activeMatchLock  sync.RWMutex
-	snakeService     = NewSnakeService()
+	snakeService     *SnakeService
+	serviceOnce      sync.Once
 )
+
+// GetSnakeService returns singleton instance
+func GetSnakeService() *SnakeService {
+	serviceOnce.Do(func() {
+		snakeService = NewSnakeService()
+	})
+	return snakeService
+}
 
 func WsHandler(c *gin.Context) {
 	playerId := c.Query("playerId")
@@ -62,10 +70,12 @@ func WsHandler(c *gin.Context) {
 	}
 	log.Printf("Players in match %s: %v", matchId, playerIds)
 
+	service := GetSnakeService()
+	
 	// Initialize the game first, then add the player
 	startMatchLoopOnce(matchId, playerIds)
-	snakeService.AddPlayer(matchId, playerId)
-	
+	service.AddPlayer(matchId, playerId)
+
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -174,7 +184,8 @@ func handleMove(matchId, playerId string, input []byte) {
 		return
 	}
 	log.Printf("Move from %s in match %s: %s", playerId, matchId, move.Direction)
-	snakeService.ExecuteMovement(matchId, playerId, strToDirection(move.Direction))
+	service := GetSnakeService()
+	service.ExecuteMovement(matchId, playerId, strToDirection(move.Direction))
 }
 
 func strToDirection(dir string) Direction {
@@ -199,7 +210,6 @@ func handleChat(matchId, playerId string, input []byte) {
 		return
 	}
 
-	// Ensure sender is set
 	chat.From = playerId
 	chat.Type = "chat"
 
@@ -210,13 +220,13 @@ func startMatchLoopOnce(matchId string, playerIds []string) {
 	activeMatchLock.Lock()
 	defer activeMatchLock.Unlock()
 
-	// Check if match is already running
 	if activeMatches[matchId] {
 		log.Printf("Match loop already running for %s", matchId)
 		return
 	}
 
-	snakeService.StartGame(matchId, playerIds)
+	service := GetSnakeService()
+	service.StartGame(matchId, playerIds)
 	activeMatches[matchId] = true
 
 	go func() {
@@ -226,14 +236,14 @@ func startMatchLoopOnce(matchId string, playerIds []string) {
 			activeMatchLock.Unlock()
 			log.Printf("Match loop ended for %s", matchId)
 		}()
-		
+
 		log.Printf("Starting match loop for %s", matchId)
 		ticker100ms := time.NewTicker(100 * time.Millisecond)
-		ticker500ms := time.NewTicker(3000 * time.Millisecond)
+		ticker3s := time.NewTicker(3 * time.Second)
 		ticker1s := time.NewTicker(1 * time.Second)
 
 		defer ticker100ms.Stop()
-		defer ticker500ms.Stop()
+		defer ticker3s.Stop()
 		defer ticker1s.Stop()
 
 		for {
@@ -241,9 +251,9 @@ func startMatchLoopOnce(matchId string, playerIds []string) {
 			case <-ticker100ms.C:
 				broadcastBoardState(matchId)
 			case <-ticker1s.C:
-				snakeService.GenerateFood(matchId)
-			case <-ticker500ms.C:
-				snakeService.RunAllSnake(matchId)
+				service.GenerateFood(matchId)
+			case <-ticker3s.C:
+				service.RunAllSnake(matchId)
 			}
 
 			matchConnMutex.RLock()
@@ -270,9 +280,9 @@ func broadcastBoardState(matchId string) {
 		return
 	}
 
-	// Get board state once (assuming it's the same for all players)
-	boardState := snakeService.GetBoardStats(matchId, playerIds[0])
-	
+	service := GetSnakeService()
+	boardState := service.GetBoardStats(matchId, playerIds[0])
+
 	stateJSON, err := json.Marshal(map[string]interface{}{
 		"type":  "update",
 		"state": boardState,

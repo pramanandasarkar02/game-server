@@ -5,37 +5,32 @@ import (
 	"time"
 )
 
-// Point represents a position on the grid
 type Point struct {
-	X int	`json:"x"`
-	Y int	`json:"y"`
+	X int `json:"x"`
+	Y int `json:"y"`
 }
 
-// Score holds the current score of the snake
 type Score struct {
-	Value int 	`json:"value"`
+	Value int `json:"value"`
 }
 
-// Direction type for snake movement
 type Direction string
 
 const (
-	LEFT  Direction = "left"
-	RIGHT Direction = "right"
-	UP    Direction = "up"
-	DOWN  Direction = "down"
+	LEFT  Direction = "LEFT"
+	RIGHT Direction = "RIGHT"
+	UP    Direction = "UP"
+	DOWN  Direction = "DOWN"
 )
 
-// Snake represents the snake entity
 type Snake struct {
-	SnakeHead    Point 	`json:"snakeHead"`
-	SnakeBody    []Point `json:"snakeBody"`
-	Direction    Direction	`json:"direction"`
-	Score        Score		`json:"score"`
-	StartingTime time.Time	`json:"time"`
+	SnakeHead    Point     `json:"snakeHead"`
+	SnakeBody    []Point   `json:"snakeBody"`
+	Direction    Direction `json:"direction"`
+	Score        Score     `json:"score"`
+	StartingTime time.Time `json:"time"`
 }
 
-// NewSnake initializes and returns a new Snake instance
 func NewSnake() *Snake {
 	return &Snake{
 		SnakeHead:    Point{X: 5, Y: 5},
@@ -46,7 +41,6 @@ func NewSnake() *Snake {
 	}
 }
 
-// snake direction controller
 func (s *Snake) Controller(c Direction) SnakeControllerResponse {
 	switch c {
 	case UP:
@@ -74,7 +68,7 @@ func (s *Snake) Controller(c Direction) SnakeControllerResponse {
 	return SnakeControllerResponse{false, "Invalid direction change"}
 }
 
-func exeucteDirMovement(head Point, dir Direction) Point {
+func executeDirMovement(head Point, dir Direction) Point {
 	switch dir {
 	case LEFT:
 		head.X -= 1
@@ -86,64 +80,80 @@ func exeucteDirMovement(head Point, dir Direction) Point {
 		head.Y += 1
 	}
 	return head
-
 }
 
-func checkFood(foods []Food, head Point) (bool, Food) {
-	for _, food := range foods {
+func checkFood(foods []Food, head Point) (bool, Food, int) {
+	for idx, food := range foods {
 		if food.Position.X == head.X && food.Position.Y == head.Y {
-			return true, food
+			return true, food, idx
 		}
 	}
-	return false, Food{}
+	return false, Food{}, -1
 }
 
-func checkCollision(head Point, snakeBody []Point, gameBoard *SnakeBoard)(bool, string) {
-	// board reange
+func checkCollision(head Point, snakeBody []Point, gameBoard *SnakeBoard) (bool, string) {
+	// Board range check
 	if (head.X < 0 || head.X >= gameBoard.Width) || (head.Y < 0 || head.Y >= gameBoard.Height) {
 		return true, "Out of range"
 	}
 
-	// obstacle
-	// for _, obs := range gameBoard.obstacles {
-	// 	if head.X == obs.X && head.Y == obs.Y{
-	// 		return true, "Hit Obstacle"
-	// 	}
-	// }
+	// Obstacle collision
+	for _, obs := range gameBoard.Obstacles {
+		for _, o := range obs.Object {
+			if head.X == o.X && head.Y == o.Y {
+				return true, "Hit Obstacle"
+			}
+		}
+	}
 
-	// other snake 
-	
+	// Other snakes collision
+	for _, sc := range gameBoard.SnakeControllers {
+		otherSnake := sc.Snake
+		if otherSnake.SnakeHead.X == head.X && otherSnake.SnakeHead.Y == head.Y {
+			return true, "Hit other snake head"
+		}
+		for _, part := range otherSnake.SnakeBody {
+			if head.X == part.X && head.Y == part.Y {
+				return true, "Hit other snake body"
+			}
+		}
+	}
 
-	// self body
+	// Self body collision
 	for _, part := range snakeBody {
-		if head.X == part.X && head.X == part.Y {
+		if head.X == part.X && head.Y == part.Y {
 			return true, "Self Collision"
 		}
 	}
-	
+
 	return false, ""
 }
 
-func executeMovement(newHead Point, snake *Snake, isFood bool){
+func executeMovement(newHead Point, snake *Snake, isFood bool) {
 	snake.SnakeBody = append(snake.SnakeBody, snake.SnakeHead)
-	if len(snake.SnakeBody) > 0 && !isFood{
+	if !isFood && len(snake.SnakeBody) > 0 {
 		snake.SnakeBody = snake.SnakeBody[1:]
 	}
 	snake.SnakeHead = newHead
 }
 
-// One tick time one execution
 func (s *Snake) Movement(gameBoard *SnakeBoard) (bool, string) {
-	newHeadPosition := exeucteDirMovement(s.SnakeHead, s.Direction)
+	newHeadPosition := executeDirMovement(s.SnakeHead, s.Direction)
 
 	if isCollision, msg := checkCollision(newHeadPosition, s.SnakeBody, gameBoard); isCollision {
-		log.Printf("there is a collision %s", msg)
+		log.Printf("Collision detected: %s", msg)
 		return true, msg
 	}
 
-	if isFood, food := checkFood(gameBoard.Foods, newHeadPosition); isFood {
-		executeMovement(newHeadPosition, s, isFood)
+	if isFood, food, idx := checkFood(gameBoard.Foods, newHeadPosition); isFood {
+		executeMovement(newHeadPosition, s, true)
 		s.Score.Value += food.Value
+		
+		// Remove eaten food
+		if idx >= 0 && idx < len(gameBoard.Foods) {
+			gameBoard.Foods = append(gameBoard.Foods[:idx], gameBoard.Foods[idx+1:]...)
+		}
+		return false, ""
 	}
 
 	executeMovement(newHeadPosition, s, false)

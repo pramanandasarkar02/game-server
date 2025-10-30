@@ -34,7 +34,7 @@ function App() {
 
         {/* Snake game */}
         <Route
-          path="/snake-game/game-canvas/:gameId/:playerId"
+          path="/snake-game/game-canvas/:gameId/:userId"
           element={player ? <SnakeGame /> : <Navigate to="/login" />}
         />
 
