@@ -1,11 +1,19 @@
+import { useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import PlayerContext from "../context/PlayerContext";
 
 const MatchMake = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const game = (location.state as { game: string })?.game || "snake";
-  const userId = "12345";
-  const gameId = "abcde";
+  const {player }  = useContext(PlayerContext);
+  const game = (location.state as { game: string })?.game || "snake-game";
+  const userId = player?.username;
+  const gameId = "match-5ca6409f-c898-44b9-9fe1-cc575ea53c8e";
+
+  
+
+  
+
 
   const goToGameCanvas = () => {
     if (game === "snake") {
@@ -17,7 +25,7 @@ const MatchMake = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-6 text-gray-100">
-      <h1 className="text-4xl font-bold mb-6">{game === "snake" ? "Snake Game" : "Tic-Tac-Toe"}</h1>
+      <h1 className="text-4xl font-bold mb-6">{game === "snake-game" ? "Snake Game" : "Tic-Tac-Toe"}</h1>
       <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-md text-center">
         <p className="text-gray-300 mb-6">
           Ready to play {game}? Click below to enter the game.
