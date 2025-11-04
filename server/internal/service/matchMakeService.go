@@ -15,6 +15,7 @@ var (
 	GamePlayerRequirements = map[string]int{
 		"single-snake-game":  1,
 		"tic-tac-toe":        2,
+		"snake": 2, 
 		"four-snake-game":    4,
 		"10-snake-game":      10,
 		"random-snake-game":  0, // no support yet

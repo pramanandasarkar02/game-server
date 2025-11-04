@@ -2,7 +2,7 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import PlayerContext from "../context/PlayerContext";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axios, { HttpStatusCode } from "axios";
 import Logout from "./Logout";
 
 type GameEnv = {
@@ -11,10 +11,13 @@ type GameEnv = {
   players: string[];
 };
 
-type MatchCheckResponse = {
-  isFound?: boolean;
-  gameEnv?: GameEnv;
-  message?: string;
+type MatchResponse = {
+  isFound: boolean;
+  match?: {
+    playerId: string;
+    gameEnv: GameEnv;
+    status: string;
+  };
 };
 
 const Home = () => {
@@ -28,10 +31,9 @@ const Home = () => {
 
   const rootUrl = "http://localhost:8080/api";
 
-  // Start polling for a match (every 2s) and keep the interval id in pollRef.
+  /** 🔁 Poll server every 2 seconds to check for a match */
   const startPolling = () => {
-    // avoid double intervals
-    if (pollRef.current) return;
+    if (pollRef.current) return; // prevent multiple intervals
     const id = window.setInterval(() => {
       getMatch();
     }, 2000);
@@ -46,120 +48,90 @@ const Home = () => {
   };
 
   useEffect(() => {
-    // cleanup on unmount
-    return () => {
-      stopPolling();
-    };
+    return () => stopPolling();
   }, []);
 
+  /** 🟢 Add player to queue */
   const addQueue = async () => {
     if (!player?.userId) {
-      setError("No player ID found. Please login.");
+      setError("No player ID found. Please log in.");
       return;
     }
 
     setLoading(true);
     setError(null);
 
-    const requestString = `${rootUrl}/match-make/${player.userId}/${selectedGame}`;
-
     try {
-      const response = await axios.post(requestString);
+      const response = await axios.post(`${rootUrl}/match-make/${player.userId}/${selectedGame}`);
 
-      // Expect backend to return 200 + { message }
-      if (response.status === 200) {
-        const data = response.data;
-        console.log("Add queue:", data?.message ?? "queued");
+      if (response.status === HttpStatusCode.Ok) {
+        console.log("Add queue:", response.data?.message ?? "queued");
         setIsQueued(true);
-        // start polling for match
         startPolling();
       } else {
-        setError(`Unexpected response status: ${response.status}`);
+        setError(`Unexpected response: ${response.status}`);
       }
     } catch (err: any) {
-      console.error("Failed to add to queue:", err);
+      console.error("Add queue error:", err);
       setError(err?.response?.data?.message ?? err.message ?? "Failed to add to queue");
     } finally {
       setLoading(false);
     }
   };
 
+  /** 🧭 Check if match is found */
   const getMatch = async () => {
-    // Polling - check if player has been matched
-    if (!player?.userId) {
-      stopPolling();
-      setIsQueued(false);
-      return;
-    }
-
-    const requestString = `${rootUrl}/match-make/${player.userId}`;
+    if (!player?.userId) return;
 
     try {
-      const response = await axios.patch(requestString);
-      if (response.status === 200) {
-        const data: MatchCheckResponse = response.data ?? {};
+      const response = await axios.get<MatchResponse>(`${rootUrl}/match-make/${player.userId}`);
 
-        // If backend returns an explicit isFound boolean and a gameEnv, navigate
-        if (data.isFound && data.gameEnv) {
-          console.log(`Match found: ${data.gameEnv.matchId}`, data.gameEnv);
+      if (response.status === HttpStatusCode.Ok) {
+        const data = response.data;
+        if (data.isFound && data.match) {
+          console.log(`✅ Match found: ${data.match.gameEnv.matchId}`);
+
+          // Stop polling once found
           stopPolling();
-          setIsQueued(false);
 
-          // pass full gameEnv to match-make route for the next screen
-          navigate("/match-make", { state: { gameEnv: data.gameEnv } });
+          // Navigate to the match page with match info
+          navigate("/match-make", {
+            state: {
+              game: data.match.gameEnv.gameId,
+              match: data.match.gameEnv,
+            },
+          });
         } else {
-          // still queued - optional console
-          console.log("No match yet.");
+          console.log("⏳ Waiting for match...");
         }
-      } else {
-        console.warn("Unexpected getMatch status:", response.status);
       }
     } catch (err: any) {
-      // If server replies with no active match or other error, just log and keep polling.
-      console.error("Error checking match:", err?.response?.data ?? err.message ?? err);
-      // If the backend says player not found or similar, you may want to stop polling:
-      // Example: if err.response?.status === 404 -> stopPolling()
+      console.error("Error checking match:", err);
     }
   };
 
+  /** 🔴 Remove player from queue */
   const removeQueue = async () => {
-    if (!player?.userId) {
-      setError("No player ID found. Please login.");
-      return;
-    }
-
+    if (!player?.userId) return;
+    stopPolling();
     setLoading(true);
-    setError(null);
-
-    const requestString = `${rootUrl}/match-make/${player.userId}`;
-
     try {
-      // You used PATCH originally — keep that so we don't change backend expectations.
-      const response = await axios.patch(requestString);
-      if (response.status === 200) {
-        const data = response.data;
-        console.log("Removed from queue:", data?.message ?? "removed");
+      const response = await axios.patch(`${rootUrl}/match-make/${player.userId}`);
+      if (response.status === HttpStatusCode.Ok) {
+        console.log(response.data?.message ?? "Removed from queue");
         setIsQueued(false);
-        stopPolling();
-      } else {
-        setError(`Unexpected response status: ${response.status}`);
       }
     } catch (err: any) {
-      console.error("Failed to remove from queue:", err);
-      setError(err?.response?.data?.message ?? err.message ?? "Failed to remove from queue");
+      console.error("Remove queue error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // click handler for Add queue button
+  /** 🔘 Add or remove queue button handler */
   const findMatchButton = () => {
-    // toggle behavior: if already queued, remove; else add
-    if (isQueued) {
-      removeQueue();
-    } else {
-      addQueue();
-    }
+    if (isQueued) removeQueue();
+    else addQueue();
   };
 
   return (
@@ -186,7 +158,9 @@ const Home = () => {
           }`}
         >
           <h2 className="text-2xl font-semibold mb-2">Snake Game</h2>
-          <p className="text-gray-300 text-center">Classic snake game. Compete with other players!</p>
+          <p className="text-gray-300 text-center">
+            Classic snake game. Compete with other players!
+          </p>
         </div>
 
         {/* Tic-Tac-Toe Game */}
@@ -209,7 +183,7 @@ const Home = () => {
           disabled={loading}
           className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md transition-colors disabled:opacity-50"
         >
-          {isQueued ? "Cancel Queue" : "Add queue"}
+          {isQueued ? "Cancel Queue" : "Add Queue"}
         </button>
 
         {isQueued && (
@@ -224,6 +198,7 @@ const Home = () => {
       </div>
 
       {error && <p className="text-red-400 mt-4">{error}</p>}
+
       <div className="mt-6">
         <Logout />
       </div>
