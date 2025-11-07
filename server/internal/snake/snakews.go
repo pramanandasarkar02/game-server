@@ -239,11 +239,11 @@ func startMatchLoopOnce(matchId string, playerIds []string) {
 
 		log.Printf("Starting match loop for %s", matchId)
 		ticker100ms := time.NewTicker(100 * time.Millisecond)
-		ticker3s := time.NewTicker(3 * time.Second)
+		ticker500ms := time.NewTicker(500 * time.Millisecond)
 		ticker1s := time.NewTicker(1 * time.Second)
 
 		defer ticker100ms.Stop()
-		defer ticker3s.Stop()
+		defer ticker500ms.Stop()
 		defer ticker1s.Stop()
 
 		for {
@@ -252,7 +252,7 @@ func startMatchLoopOnce(matchId string, playerIds []string) {
 				broadcastBoardState(matchId)
 			case <-ticker1s.C:
 				service.GenerateFood(matchId)
-			case <-ticker3s.C:
+			case <-ticker500ms.C:
 				service.RunAllSnake(matchId)
 			}
 
@@ -296,7 +296,7 @@ func broadcastBoardState(matchId string) {
 }
 
 func getPlayersByMatchId(db *sql.DB, matchId string) ([]string, error) {
-	row := db.QueryRow(`SELECT players FROM matches WHERE match_id = ?`, matchId)
+	row := db.QueryRow(`SELECT players FROM matches WHERE matchId = ?`, matchId)
 
 	var playerList string
 	if err := row.Scan(&playerList); err != nil {

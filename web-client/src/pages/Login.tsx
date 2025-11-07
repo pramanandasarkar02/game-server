@@ -29,6 +29,7 @@ const Login = () => {
         username: data.username,
         userId: data.userId,
         playerStatus: data.playerStatus,
+        matchId: ""
       };
       setPlayer(newPlayer);
 

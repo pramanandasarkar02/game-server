@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
+// import PlayerContext from "../../context/PlayerContext";
 
 const CELL_SIZE = 10;
 const BOARD_WIDTH = 60;
@@ -58,7 +59,8 @@ const SnakeGame: React.FC = () => {
   const lastDirectionRef = useRef<string>("");
   
   const { gameId, userId } = useParams<{ gameId: string; userId: string }>();
-
+  // const {player} = useContext(PlayerContext);
+  // const username = player?.username;
   // Draw game state on canvas
   const drawGame = useCallback(() => {
     if (!gameState || !canvasRef.current) return;
@@ -377,9 +379,9 @@ const SnakeGame: React.FC = () => {
                 ? "bg-yellow-600"
                 : "bg-red-600"
             }`}>
-              {connectionStatus === "connected" && "🟢 Connected"}
-              {connectionStatus === "connecting" && "🟡 Connecting..."}
-              {connectionStatus === "disconnected" && "🔴 Disconnected"}
+              {connectionStatus === "connected" && "Connected"}
+              {connectionStatus === "connecting" && "Connecting..."}
+              {connectionStatus === "disconnected" && "Disconnected"}
             </span>
             <span className="text-gray-400">Room: {gameId}</span>
             <span className="text-gray-400">Player: {userId}</span>
@@ -427,8 +429,8 @@ const SnakeGame: React.FC = () => {
         {/* Controls Guide */}
         <div className="bg-gray-800 p-3 rounded mb-4 text-center text-sm">
           <span className="text-gray-400">Controls:</span>{" "}
-          <span className="font-mono">↑↓←→</span> or{" "}
-          <span className="font-mono">WASD</span> to move
+          <span className="font-mono font-bold text-xl">↑ ↓ ← →</span> or{" "}
+          <span className="font-mono font-bold text-xl">WASD</span> to move
         </div>
 
         {/* Chat */}

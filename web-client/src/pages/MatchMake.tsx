@@ -7,8 +7,8 @@ const MatchMake = () => {
   const location = useLocation();
   const {player }  = useContext(PlayerContext);
   const game = (location.state as { game: string })?.game || "snake-game";
-  const userId = player?.username;
-  const gameId = "match-5ca6409f-c898-44b9-9fe1-cc575ea53c8e";
+  const userId = player?.userId;
+  const gameId = player?.matchId;
 
   
 

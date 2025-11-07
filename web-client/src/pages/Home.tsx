@@ -4,6 +4,7 @@ import PlayerContext from "../context/PlayerContext";
 import { useNavigate } from "react-router-dom";
 import axios, { HttpStatusCode } from "axios";
 import Logout from "./Logout";
+import type { Player } from "../types/player";
 
 type GameEnv = {
   gameId: string;
@@ -21,7 +22,7 @@ type MatchResponse = {
 };
 
 const Home = () => {
-  const { player } = useContext(PlayerContext);
+  const { player, setPlayer } = useContext(PlayerContext);
   const navigate = useNavigate();
   const [selectedGame, setSelectedGame] = useState<string>("snake");
   const [isQueued, setIsQueued] = useState<boolean>(false);
@@ -90,7 +91,13 @@ const Home = () => {
         const data = response.data;
         if (data.isFound && data.match) {
           console.log(`✅ Match found: ${data.match.gameEnv.matchId}`);
-
+          const newPlayer: Player = {
+            username: player.username,
+            userId: player.userId,
+            playerStatus: player.playerStatus,
+            matchId: data.match.gameEnv.matchId
+          };
+          setPlayer(newPlayer);
           // Stop polling once found
           stopPolling();
 
@@ -110,7 +117,7 @@ const Home = () => {
     }
   };
 
-  /** 🔴 Remove player from queue */
+  /**  Remove player from queue */
   const removeQueue = async () => {
     if (!player?.userId) return;
     stopPolling();
@@ -128,7 +135,7 @@ const Home = () => {
     }
   };
 
-  /** 🔘 Add or remove queue button handler */
+  /**  Add or remove queue button handler */
   const findMatchButton = () => {
     if (isQueued) removeQueue();
     else addQueue();

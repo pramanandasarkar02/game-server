@@ -29,6 +29,7 @@ const Signup = () => {
         username: data.username,
         userId: data.userId,
         playerStatus: data.playerStatus,
+        matchId: ""
       };
       setPlayer(newPlayer);
 
