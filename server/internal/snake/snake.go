@@ -2,6 +2,7 @@ package snake
 
 import (
 	"log"
+	"math/rand/v2"
 	"time"
 )
 
@@ -31,10 +32,12 @@ type Snake struct {
 	StartingTime time.Time `json:"time"`
 }
 
+
+
 func NewSnake() *Snake {
 	return &Snake{
-		SnakeHead:    Point{X: 5, Y: 5},
-		SnakeBody:    []Point{{X: 4, Y: 5}, {X: 3, Y: 5}},
+		SnakeHead:    newRandomSnakeHead(),
+		SnakeBody:    []Point{},
 		Direction:    RIGHT,
 		Score:        Score{Value: 0},
 		StartingTime: time.Now(),
@@ -159,3 +162,13 @@ func (s *Snake) Movement(gameBoard *SnakeBoard) (bool, string) {
 	executeMovement(newHeadPosition, s, false)
 	return false, ""
 }
+
+func newRandomSnakeHead() Point {
+	spanWidth := 20;
+	spanHeight := 20;
+	startingPoint := Point{
+		X: rand.IntN(spanWidth),
+		Y: rand.IntN(spanHeight),
+	}
+	return startingPoint
+} 

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 // import PlayerContext from "../../context/PlayerContext";
 
-const CELL_SIZE = 10;
+const CELL_SIZE = 16;
 const BOARD_WIDTH = 60;
 const BOARD_HEIGHT = 40;
 
@@ -123,7 +123,7 @@ const SnakeGame: React.FC = () => {
           
           // Draw food value
           ctx.fillStyle = "white";
-          ctx.font = "8px Arial";
+          ctx.font = "12px Arial";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(
@@ -370,7 +370,7 @@ const SnakeGame: React.FC = () => {
       <div className="max-w-4xl w-full">
         {/* Header */}
         <div className="mb-4 text-center">
-          <h1 className="text-3xl font-bold mb-2">🐍 Snake Game</h1>
+          <h1 className="text-3xl font-bold mb-2">Snake Game</h1>
           <div className="flex items-center justify-center gap-4 text-sm">
             <span className={`px-3 py-1 rounded-full ${
               connectionStatus === "connected" 
