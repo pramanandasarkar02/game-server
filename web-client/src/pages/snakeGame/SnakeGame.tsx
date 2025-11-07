@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 // import PlayerContext from "../../context/PlayerContext";
 
 const CELL_SIZE = 16;
@@ -21,6 +21,7 @@ interface Snake {
   direction: string;
   score: Score;
   time: string;
+  isAlive: boolean;
 }
 
 interface Food {
@@ -57,6 +58,9 @@ const SnakeGame: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDirectionRef = useRef<string>("");
+  const navigate = useNavigate();
+
+
   
   const { gameId, userId } = useParams<{ gameId: string; userId: string }>();
   // const {player} = useContext(PlayerContext);
@@ -220,6 +224,15 @@ const SnakeGame: React.FC = () => {
       );
     }
   }, [gameState]);
+
+  // End Game handler — closes WebSocket cleanly
+const endGameHandler = () => {
+  if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+    wsRef.current.close(); // close socket
+  }
+  navigate("/"); // go back to home
+};
+
 
   // Connect WebSocket
   const connectWebSocket = useCallback(() => {
@@ -473,6 +486,19 @@ const SnakeGame: React.FC = () => {
             </button>
           </div>
         </div>
+        {/* End Game button */}
+        {!gameState?.playerSnake?.isAlive ? (
+          <button
+            onClick={endGameHandler}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            End Game
+          </button>
+        ) : (
+          <div className="hidden"></div>
+        )}
+
+        
       </div>
     </div>
   );

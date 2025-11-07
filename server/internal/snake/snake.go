@@ -30,6 +30,7 @@ type Snake struct {
 	Direction    Direction `json:"direction"`
 	Score        Score     `json:"score"`
 	StartingTime time.Time `json:"time"`
+	IsAlive 		bool 	`json:"isalive"`
 }
 
 
@@ -41,6 +42,7 @@ func NewSnake() *Snake {
 		Direction:    RIGHT,
 		Score:        Score{Value: 0},
 		StartingTime: time.Now(),
+		IsAlive: true,
 	}
 }
 
@@ -133,6 +135,9 @@ func checkCollision(head Point, snakeBody []Point, gameBoard *SnakeBoard) (bool,
 }
 
 func executeMovement(newHead Point, snake *Snake, isFood bool) {
+	if !snake.IsAlive{
+		return 
+	}
 	snake.SnakeBody = append(snake.SnakeBody, snake.SnakeHead)
 	if !isFood && len(snake.SnakeBody) > 0 {
 		snake.SnakeBody = snake.SnakeBody[1:]
@@ -145,6 +150,7 @@ func (s *Snake) Movement(gameBoard *SnakeBoard) (bool, string) {
 
 	if isCollision, msg := checkCollision(newHeadPosition, s.SnakeBody, gameBoard); isCollision {
 		log.Printf("Collision detected: %s", msg)
+		s.IsAlive = false
 		return true, msg
 	}
 

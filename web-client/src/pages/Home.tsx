@@ -52,7 +52,7 @@ const Home = () => {
     return () => stopPolling();
   }, []);
 
-  /** 🟢 Add player to queue */
+  /** Add player to queue */
   const addQueue = async () => {
     if (!player?.userId) {
       setError("No player ID found. Please log in.");
@@ -148,8 +148,8 @@ const Home = () => {
       {player?.username && (
         <div className="bg-gray-800 shadow-md rounded-lg p-4 mb-6 w-full max-w-md text-center">
           <p className="text-gray-100 text-lg">
-            Logged in as <strong>{player.username}</strong> (ID: {player.userId}) <br />
-            Status: <span className="text-blue-400">{player.playerStatus}</span>
+            <strong>{player.username}</strong><br /> (ID: {player.userId}) <br />
+            {/* Status: <span className="text-blue-400">{player.playerStatus}</span> */}
           </p>
         </div>
       )}
@@ -166,7 +166,7 @@ const Home = () => {
         >
           <h2 className="text-2xl font-semibold mb-2">Snake Game</h2>
           <p className="text-gray-300 text-center">
-            Classic snake game. Compete with other players!
+            2P Snake Game
           </p>
         </div>
 
@@ -180,7 +180,7 @@ const Home = () => {
           }`}
         >
           <h2 className="text-2xl font-semibold mb-2">Tic-Tac-Toe</h2>
-          <p className="text-gray-300 text-center">Play Tic-Tac-Toe with friends!</p>
+          <p className="text-gray-300 text-center">Doesn't implement yet</p>
         </div>
       </div>
 
